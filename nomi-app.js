@@ -6173,4 +6173,32 @@ window.addEventListener('resize', () => {
   if (!isMobile()) closeCartModal();
 });
 
+// ══════════════════════════════════════════════════════════════
+// MODAL "MÁS" — Plan, Config, Modo oscuro, Cerrar sesión
+// Solo visible en móvil (bottom bar)
+// ══════════════════════════════════════════════════════════════
+
+function openMasModal() {
+  document.getElementById('mas-modal-overlay')?.classList.add('open');
+  // Sincronizar estado del toggle de modo oscuro
+  const isDark = document.documentElement.classList.contains('dark');
+  const iconModal = document.getElementById('dark-icon-modal');
+  if (iconModal) iconModal.textContent = isDark ? '☀️' : '🌙';
+}
+
+function closeMasModal() {
+  document.getElementById('mas-modal-overlay')?.classList.remove('open');
+}
+
+// Mostrar el ítem "Más" solo en móvil
+function updateMasNavItem() {
+  const sec = document.getElementById('nav-mas-section');
+  if (!sec) return;
+  sec.style.display = isMobile() ? '' : 'none';
+}
+
+window.addEventListener('resize', updateMasNavItem);
+window.addEventListener('load', () => setTimeout(updateMasNavItem, 100));
+// ══ FIN MODAL MÁS ══
+
 // ══ FIN FAB CARRITO MÓVIL v3 ══
