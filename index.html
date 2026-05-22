@@ -396,6 +396,8 @@ html.dark button[onclick="exportReportePDF()"] {
    ══════════════════════════════════════════════════════ */
 
 /* Animación del modal carrito móvil — fuera del media query para compatibilidad */
+/* FAB carrito — oculto por defecto en PC, el @media lo muestra en móvil */
+.pos-cart-fab { display: none; }
 @keyframes slideUpCart {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
@@ -588,8 +590,9 @@ html.dark button[onclick="exportReportePDF()"] {
     display: block;
   }
 
-  /* FAB — botón flotante, oculto por JS hasta que sea móvil+POS */
+  /* FAB — visible solo en móvil cuando se está en el POS */
   .pos-cart-fab {
+    display: flex;
     position: fixed;
     bottom: 72px;
     right: 14px;
@@ -984,7 +987,7 @@ html.dark button[onclick="exportReportePDF()"] {
 <!-- ══════════════════════════════════════════════════════ -->
 <!-- FAB + OVERLAY CARRITO MÓVIL                           -->
 <!-- ══════════════════════════════════════════════════════ -->
-<button class="pos-cart-fab" id="pos-cart-fab" style="display:none;" onclick="openCartModal()">
+<button class="pos-cart-fab" id="pos-cart-fab" onclick="openCartModal()">
   🛒 Carrito
   <span class="pos-cart-fab-badge" id="pos-cart-fab-badge">0</span>
 </button>
