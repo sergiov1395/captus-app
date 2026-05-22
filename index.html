@@ -535,29 +535,35 @@ html.dark button[onclick="exportReportePDF()"] {
      PC no se toca: grid de 2 columnas intacto.
   ══════════════════════════════════════════════════════ */
 
-  /* Topbar POS compacto: texto del botón gasto se oculta */
-  /* ── MODIFICADO: permite wrap para que los TC no se aprieten ── */
-  #screen-pos .topbar { flex-wrap: wrap; gap: 4px; padding: 8px 12px; }
+  /* ── MODIFICADO: topbar POS móvil en 3 filas: título / TC 2x2 / botón gasto ── */
+  #screen-pos .topbar { flex-wrap: wrap; gap: 6px; padding: 8px 12px; align-items: flex-start; }
   #screen-pos .topbar > div:first-child { flex: 1 1 100%; }
   #screen-pos .topbar-actions {
-    flex-wrap: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 6px;
     width: 100%;
-    align-items: center;
-    overflow: hidden;
   }
   #screen-pos #pos-tc-bar {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
   }
   #screen-pos #pos-tc-pills {
-    display: flex !important;
-    flex-wrap: wrap;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
     gap: 4px;
+    flex: 1;
   }
-  #screen-pos .btn-danger.btn-sm { flex-shrink: 0; padding: 6px 9px; font-size: 0; }
-  #screen-pos .btn-danger.btn-sm::before { content: '💸'; font-size: 1.1rem; }
+  #screen-pos .btn-danger.btn-sm {
+    width: 100%;
+    font-size: .78rem !important;
+    padding: 7px 12px;
+  }
+  #screen-pos .btn-danger.btn-sm::before { content: none; }
   /* ── FIN MODIFICADO topbar POS móvil ── */
 
   /* POS layout: una sola columna, los productos ocupan todo */
