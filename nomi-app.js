@@ -6070,6 +6070,226 @@ function toggleAcordeon(listId, chevronId, badgeId) {
     }, 260);
     if (chevron) { chevron.style.transform = 'rotate(0deg)'; }
   }
+
+  // ══════════════════════════════════════════════════════════════
+// FAB CARRITO MÓVIL — Lógica completa
+// Sincroniza el modal móvil con el estado real del carrito (cart[])
+// ══════════════════════════════════════════════════════════════
+
+// ── AGREGADO PARTE-A MÓVIL: detectar si estamos en móvil ──
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+
+// ── AGREGADO: mostrar/ocultar el FAB según pantalla activa ──
+function updateCartFab() {
+  const fab = document.getElementById('pos-cart-fab');
+  if (!fab) return;
+  const enPOS = document.getElementById('screen-pos')?.classList.contains('active');
+  if (isMobile() && enPOS) {
+    fab.style.display = 'flex';
+    const count = cart.reduce((s, c) => s + c.qty, 0);
+    document.getElementById('pos-cart-fab-badge').textContent = count;
+  } else {
+    fab.style.display = 'none';
+  }
+}
+
+// ── AGREGADO: abrir modal del carrito ──
+function openCartModal() {
+  const overlay = document.getElementById('pos-cart-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  document.getElementById('pos-cart-fab')?.classList.add('fab-hidden');
+  syncCartModalClientes();
+  renderCartModal();
+}
+
+// ── AGREGADO: cerrar modal del carrito ──
+function closeCartModal() {
+  const overlay = document.getElementById('pos-cart-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  document.getElementById('pos-cart-fab')?.classList.remove('fab-hidden');
+}
+
+// ── AGREGADO: sincronizar select de clientes en el modal ──
+function syncCartModalClientes() {
+  const srcSelect = document.getElementById('cart-cliente');
+  const dstSelect = document.getElementById('cart-cliente-modal');
+  if (!srcSelect || !dstSelect) return;
+  dstSelect.innerHTML = srcSelect.innerHTML;
+}
+
+// ── AGREGADO: renderizar items del carrito en el modal móvil ──
+function renderCartModal() {
+  if (!isMobile()) return;
+
+  const subtotal = cart.reduce((s, c) => s + c.precio * c.qty, 0);
+  const count = cart.reduce((s, c) => s + c.qty, 0);
+
+  // Recalcular descuento
+  if (cartDescuento.valor > 0) {
+    cartDescuento.monto = cartDescuento.tipo === 'pct'
+      ? Math.round(subtotal * (cartDescuento.valor / 100))
+      : Math.min(cartDescuento.valor, subtotal);
+  } else {
+    cartDescuento.monto = 0;
+  }
+  const total = subtotal - cartDescuento.monto;
+
+  // Actualizar totales
+  const elSub = document.getElementById('cart-subtotal-modal');
+  const elTot = document.getElementById('cart-total-modal');
+  const elCount = document.getElementById('cart-count-lbl-modal');
+  const elBadge = document.getElementById('cart-desc-badge-modal');
+  const elMonto = document.getElementById('cart-desc-monto-modal');
+  const elWrap  = document.getElementById('cart-descuento-wrap-modal');
+
+  if (elSub)   elSub.textContent   = fmtGs(subtotal);
+  if (elTot)   elTot.textContent   = fmtGs(total);
+  if (elCount) elCount.textContent = count > 0 ? `(${count} ítem${count !== 1 ? 's' : ''})` : '';
+
+  if (cartDescuento.monto > 0) {
+    if (elWrap)  elWrap.style.display  = 'block';
+    if (elBadge) { elBadge.style.display = 'inline'; elBadge.textContent = cartDescuento.tipo === 'pct' ? `Desc. ${cartDescuento.valor}%` : 'Desc. fijo'; }
+    if (elMonto) { elMonto.style.display = 'block'; elMonto.textContent = `−${fmtGs(cartDescuento.monto)}`; }
+  } else {
+    if (elWrap)  elWrap.style.display  = 'none';
+    if (elBadge) elBadge.style.display = 'none';
+  }
+
+  // Actualizar badge FAB
+  document.getElementById('pos-cart-fab-badge').textContent = count;
+
+  // Renderizar items
+  const el = document.getElementById('cart-items-modal');
+  if (!el) return;
+  if (!cart.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:30px 0"><div class="empty-icon">🛒</div><div class="empty-text">Carrito vacío.</div></div>`;
+    return;
+  }
+  el.innerHTML = cart.map(item => `<div class="cart-item" style="flex-wrap:wrap;gap:4px;">
+    <span style="font-size:1.1rem;">${item.emoji}</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:700;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.nombre}</div>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
+        <span style="font-size:.68rem;color:var(--ink3);">Precio:</span>
+        <input type="number" value="${item.precio}" min="0"
+          style="width:90px;padding:2px 5px;border:1.5px solid var(--border);border-radius:5px;font-family:var(--font);font-size:.8rem;background:var(--bg);outline:none;"
+          onchange="updateCartItemPriceModal(${item.id},this.value)">
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+      <button onclick="changeQtyModal(${item.id},-1)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:.9rem;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;">−</button>
+      <span style="font-weight:700;font-size:.9rem;min-width:18px;text-align:center;">${item.qty}</span>
+      <button onclick="changeQtyModal(${item.id},1)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:.9rem;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;">+</button>
+    </div>
+  </div>`).join('');
+}
+
+// ── AGREGADO: cambiar cantidad desde modal ──
+function changeQtyModal(id, delta) {
+  const idx = cart.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  cart[idx].qty += delta;
+  if (cart[idx].qty <= 0) cart.splice(idx, 1);
+  renderCart();      // actualiza carrito desktop (mantiene sincronía)
+  renderCartModal(); // actualiza modal móvil
+  renderPosGrid();
+}
+
+// ── AGREGADO: actualizar precio desde modal ──
+function updateCartItemPriceModal(id, val) {
+  const idx = cart.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  const v = parseFloat(val);
+  if (!isNaN(v) && v >= 0) cart[idx].precio = v;
+  renderCart();
+  renderCartModal();
+}
+
+// ── AGREGADO: descuento desde modal ──
+function toggleDescuentoPanelModal() {
+  const w = document.getElementById('cart-descuento-wrap-modal');
+  if (!w) return;
+  w.style.display = w.style.display === 'none' ? 'block' : 'none';
+}
+function previewDescuentoModal() {
+  // sincroniza con los valores del modal y llama preview del desktop
+  const tipo = document.getElementById('cart-desc-tipo-modal')?.value;
+  const val  = document.getElementById('cart-desc-val-modal')?.value;
+  // copiar al desktop para reusar lógica
+  const dTipo = document.getElementById('cart-desc-tipo');
+  const dVal  = document.getElementById('cart-desc-val');
+  if (dTipo) dTipo.value = tipo;
+  if (dVal)  dVal.value  = val;
+  previewDescuento(); // función original
+  renderCartModal();
+}
+function aplicarDescuentoModal() {
+  const tipo = document.getElementById('cart-desc-tipo-modal')?.value;
+  const val  = document.getElementById('cart-desc-val-modal')?.value;
+  const dTipo = document.getElementById('cart-desc-tipo');
+  const dVal  = document.getElementById('cart-desc-val');
+  if (dTipo) dTipo.value = tipo;
+  if (dVal)  dVal.value  = val;
+  aplicarDescuento(); // función original
+  renderCartModal();
+}
+function quitarDescuentoModal() {
+  quitarDescuento(); // función original
+  renderCartModal();
+}
+
+// ── AGREGADO: finalizar venta desde el modal móvil ──
+async function finalizarVentaModal() {
+  // Sincronizar campos del modal con los del formulario original
+  const fields = [
+    ['cart-cliente-modal',              'cart-cliente'],
+    ['cart-pago-modal',                 'cart-pago'],
+    ['cart-nota-modal',                 'cart-nota'],
+    ['cc-fecha-vencimiento-pos-modal',  'cc-fecha-vencimiento-pos'],
+  ];
+  fields.forEach(([src, dst]) => {
+    const s = document.getElementById(src);
+    const d = document.getElementById(dst);
+    if (s && d) d.value = s.value;
+  });
+  closeCartModal();
+  await finalizarVenta(); // llama la función original
+}
+
+// ── AGREGADO: hook para que renderCart() también actualice el modal y el FAB ──
+const _origRenderCart = renderCart;
+// Parche: envolvemos renderCart para que siempre actualice FAB y modal
+(function patchRenderCart() {
+  const orig = window.renderCart;
+  window.renderCart = function() {
+    orig.apply(this, arguments);
+    updateCartFab();
+    if (document.getElementById('pos-cart-modal-overlay')?.classList.contains('open')) {
+      renderCartModal();
+    }
+  };
+})();
+
+// ── AGREGADO: mostrar FAB al entrar al POS, ocultarlo al salir ──
+const _origNavTo = navTo;
+(function patchNavTo() {
+  const orig = window.navTo;
+  window.navTo = function(screen) {
+    orig.apply(this, arguments);
+    setTimeout(updateCartFab, 50);
+  };
+})();
+
+// Inicializar FAB al cargar
+window.addEventListener('load', () => setTimeout(updateCartFab, 300));
+window.addEventListener('resize', updateCartFab);
+
+// ══ FIN FAB CARRITO MÓVIL ══
+
 }
 // ══════════════════════════════════════════════════════════
 // FIN ACORDEÓN GENÉRICO
