@@ -3496,25 +3496,33 @@ async function renderReportes(){
         const mb = (b.precio - b.costo) / b.precio;
         return mb - ma;
       });
+      // ── MODIFICADO: layout 2 filas para evitar encimamiento en móvil ──
       repRent.innerHTML = sorted.map((p, i) => {
-        const gan    = p.precio - p.costo;
-        const margen = ((gan / p.precio) * 100).toFixed(1);
+        const gan      = p.precio - p.costo;
+        const margen   = ((gan / p.precio) * 100).toFixed(1);
         const pctCosto = ((gan / p.costo) * 100).toFixed(0);
-        const color  = margen >= 50 ? '#16a34a' : margen >= 30 ? '#2563eb' : margen >= 10 ? '#d97706' : '#dc2626';
-        const medal  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
-        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:1.1rem;min-width:28px;">${medal}</span>
-          <span style="font-size:1.2rem;">${p.emoji||'📦'}</span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nombre}</div>
-            <div style="font-size:.75rem;color:var(--ink3);">Costo ${fmtGs(p.costo)} → Precio ${fmtGs(p.precio)}</div>
+        const color    = margen >= 50 ? '#16a34a' : margen >= 30 ? '#2563eb' : margen >= 10 ? '#d97706' : '#dc2626';
+        const medal    = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+        return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <!-- LÍNEA 1: medalla + emoji + nombre del producto -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <span style="font-size:1.1rem;min-width:26px;flex-shrink:0;">${medal}</span>
+            <span style="font-size:1.1rem;flex-shrink:0;">${p.emoji||'📦'}</span>
+            <div style="font-weight:700;font-size:.88rem;word-break:break-word;line-height:1.3;">${p.nombre}</div>
           </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-weight:800;font-size:.92rem;color:${color};">+${fmtGs(gan)}</div>
-            <div style="font-size:.72rem;color:${color};font-weight:600;">${margen}% margen · ${pctCosto}% s/costo</div>
+          <!-- LÍNEA 2: costo/precio a la izquierda, ganancia/margen a la derecha -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding-left:34px;">
+            <div style="font-size:.72rem;color:var(--ink3);white-space:nowrap;">
+              Costo ${fmtGs(p.costo)} → ${fmtGs(p.precio)}
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-weight:800;font-size:.88rem;color:${color};white-space:nowrap;">+${fmtGs(gan)}</div>
+              <div style="font-size:.68rem;color:${color};font-weight:600;white-space:nowrap;">${margen}% · ${pctCosto}% s/costo</div>
+            </div>
           </div>
         </div>`;
       }).join('');
+      // ── FIN MODIFICADO ──
     }
   }
   // ══════════════════════════════════════════════════════════
