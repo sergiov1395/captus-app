@@ -6123,7 +6123,9 @@ function syncCartModalClientes() {
 
 // ── AGREGADO: renderizar items del carrito en el modal móvil ──
 function renderCartModal() {
-  if (!isMobile()) return;
+  const overlay = document.getElementById('pos-cart-modal-overlay');
+  // Solo renderiza si el modal existe (en móvil está en el DOM siempre)
+  if (!overlay) return;
 
   const subtotal = cart.reduce((s, c) => s + c.precio * c.qty, 0);
   const count = cart.reduce((s, c) => s + c.qty, 0);
@@ -6265,10 +6267,12 @@ const _origRenderCart = renderCart;
 // Parche: envolvemos renderCart para que siempre actualice FAB y modal
 (function patchRenderCart() {
   const orig = window.renderCart;
+  if (!orig) return;
   window.renderCart = function() {
     orig.apply(this, arguments);
     updateCartFab();
-    if (document.getElementById('pos-cart-modal-overlay')?.classList.contains('open')) {
+    const overlay = document.getElementById('pos-cart-modal-overlay');
+    if (overlay && overlay.classList.contains('open')) {
       renderCartModal();
     }
   };
