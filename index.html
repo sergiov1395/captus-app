@@ -536,9 +536,29 @@ html.dark button[onclick="exportReportePDF()"] {
   ══════════════════════════════════════════════════════ */
 
   /* Topbar POS compacto: texto del botón gasto se oculta */
-  #screen-pos .topbar-actions { flex-wrap: nowrap; gap: 5px; }
-  #screen-pos .btn-danger.btn-sm { padding: 6px 9px; font-size: 0; }
+  /* ── MODIFICADO: permite wrap para que los TC no se aprieten ── */
+  #screen-pos .topbar { flex-wrap: wrap; gap: 4px; padding: 8px 12px; }
+  #screen-pos .topbar > div:first-child { flex: 1 1 100%; }
+  #screen-pos .topbar-actions {
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: 100%;
+    align-items: center;
+    overflow: hidden;
+  }
+  #screen-pos #pos-tc-bar {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+  #screen-pos #pos-tc-pills {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  #screen-pos .btn-danger.btn-sm { flex-shrink: 0; padding: 6px 9px; font-size: 0; }
   #screen-pos .btn-danger.btn-sm::before { content: '💸'; font-size: 1.1rem; }
+  /* ── FIN MODIFICADO topbar POS móvil ── */
 
   /* POS layout: una sola columna, los productos ocupan todo */
   .pos-layout {
