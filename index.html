@@ -559,8 +559,8 @@ html.dark button[onclick="exportReportePDF()"] {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 96dvh;
-    max-height: 96dvh;
+    height: 96dvh !important;
+    max-height: 96dvh !important;
     border-left: none !important;
     border-top: 2px solid var(--border);
     border-radius: 20px 20px 0 0;
@@ -672,7 +672,7 @@ html.dark button[onclick="exportReportePDF()"] {
 @media (max-width: 380px) {
   .nav-item { min-width: 44px; padding: 7px 5px 5px; font-size: .5rem; }
   .topbar-actions .btn { padding: 5px 8px; font-size: .68rem; }
-  .pos-cart { height: 55vh; } /* ── MODIFICADO: consistente con el nuevo tamaño ── */
+  .pos-cart { height: 96dvh !important; }
 }
 </style>
 </head>
