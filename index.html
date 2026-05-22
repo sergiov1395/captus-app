@@ -769,16 +769,91 @@ html.dark button[onclick="exportReportePDF()"] {
   #screen-fiado .fiado-row3 .seg-btn { font-size: .78rem; padding: 7px 4px; text-align:center; }
   #screen-fiado #fiado-search { width: 100%; }
 
-  /* Balance: topbar compacto */
-  #screen-balance .topbar { flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
-  #screen-balance .topbar-actions { flex-wrap: wrap; gap: 5px; }
-  #screen-balance .topbar-actions .btn { font-size: .72rem; padding: 5px 9px; }
-  #screen-balance #caja-status-badge-balance { font-size: .7rem; padding: 4px 9px; }
-  /* Balance: zona scrollable con padding reducido */
+  /* ══ BALANCE MÓVIL — NUEVO BLOQUE ══ */
+  /* Topbar: título arriba, badge+botones abajo en fila */
+  #screen-balance .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  #screen-balance .topbar > div:first-child {
+    width: 100%;
+  }
+  #screen-balance .topbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+  /* Badge ocupa todo el ancho disponible */
+  #screen-balance #caja-status-badge-balance {
+    font-size: .72rem;
+    padding: 5px 10px;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+  }
+  /* Botones abrir/cerrar en tamaño compacto */
+  #screen-balance .topbar-actions .btn {
+    font-size: .75rem;
+    padding: 6px 12px;
+    flex-shrink: 0;
+  }
+
+  /* Zona scrollable con padding reducido */
   #screen-balance > div[style*="overflow-y:auto"],
   #screen-balance > div[style*="overflow-y: auto"] {
-    padding: 12px 12px 24px !important;
+    padding: 10px 10px 24px !important;
   }
+
+  /* Grid de 3 tarjetas (Saldo / Ingresos / Egresos): 1 columna */
+  #screen-balance .grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tarjeta de turno activo: stats en fila scrollable */
+  #screen-balance #caja-turno-activo .card > div {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #screen-balance #caja-turno-activo .card > div > div:last-child {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0;
+  }
+
+  /* Grid de 2 columnas (Dif.cambio+Saldos | Historial): 1 columna */
+  #screen-balance > div > div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Historial de turnos: altura limitada en móvil */
+  #screen-balance #turnos-historial-list {
+    max-height: 260px;
+  }
+
+  /* Saldos por moneda: 2 columnas en móvil */
+  #screen-balance #bal-monedas-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Diferencia de cambio: botones en columna */
+  #screen-balance #bal-dif-cambio-wrap .card > div:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  #screen-balance #bal-dif-cambio-wrap .card > div:first-child > div:last-child {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  /* ══ FIN BALANCE MÓVIL ══ */
 
   /* Reportes: topbar con fechas en columna */
   #screen-reportes .topbar { flex-wrap: wrap; gap: 6px; padding: 10px 12px; align-items: flex-start; }
