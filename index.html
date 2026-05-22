@@ -710,14 +710,55 @@ html.dark button[onclick="exportReportePDF()"] {
      Solo iconos, sin texto en los botones de acción
   ════════════════════════════════════════════════ */
 
-  /* Inventario: botones solo icono */
-  #screen-productos .topbar { flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
-  #screen-productos .topbar-actions { flex-wrap: wrap; gap: 5px; width: 100%; }
-  #screen-productos .segment { flex-wrap: wrap; }
-  #screen-productos .seg-btn { font-size: .72rem; padding: 5px 9px; }
-  #screen-productos .btn-primary.btn-sm { font-size: 0; padding: 7px 10px; }
-  #screen-productos .btn-primary.btn-sm::before { content: '➕'; font-size: 1rem; }
-  #screen-productos .btn-ghost.btn-sm[onclick*="catalogo"] { font-size: .72rem; padding: 5px 9px; }
+  /* ════════════════════════════════════════════════
+     INVENTARIO MÓVIL — topbar en 3 filas ordenadas
+     Fila 1: título "Inventario" + botón ➕
+     Fila 2: tabs Productos / Servicios / Historial
+     Fila 3: botón Catálogo (ancho completo)
+  ════════════════════════════════════════════════ */
+  /* ── LÍNEAS NUEVAS: reemplazo completo del topbar inventario ── */
+  #screen-productos .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 10px 12px 8px;
+  }
+  /* Fila 1: título a la izquierda, ➕ a la derecha */
+  #screen-productos .inv-topbar-row1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  /* Fila 2: tabs ocupan todo el ancho */
+  #screen-productos .inv-topbar-row2 {
+    display: flex;
+    margin-bottom: 7px;
+  }
+  #screen-productos .inv-topbar-row2 .segment {
+    display: flex;
+    width: 100%;
+  }
+  #screen-productos .inv-topbar-row2 .seg-btn {
+    flex: 1;
+    font-size: .72rem;
+    padding: 6px 4px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Fila 3: catálogo ancho completo */
+  #screen-productos .inv-topbar-row3 .btn {
+    width: 100%;
+    font-size: .78rem;
+    padding: 7px 12px;
+  }
+  /* Ocultar el div wrapper original de topbar-actions */
+  #screen-productos .topbar > .topbar-actions {
+    display: none !important;
+  }
+  /* ── FIN LÍNEAS NUEVAS ── */
 
   /* Fiado: buscador y tabs compactos */
   #screen-fiado .topbar { flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
@@ -749,19 +790,72 @@ html.dark button[onclick="exportReportePDF()"] {
   #screen-calc .topbar-sub { font-size: .65rem; }
 
   /* ════════════════════════════════════════════════
-     INVENTARIO — filas de producto en 3 líneas
+     INVENTARIO — filas de producto: layout 2 filas
+     Fila A: ícono + nombre (ocupa todo el ancho)
+     Fila B: precio + stock-badge + botón borrar
   ════════════════════════════════════════════════ */
-  .prod-row { flex-wrap: wrap; gap: 6px; padding: 10px 0; }
-  .prod-row .row-body { width: 100%; min-width: 0; }
-  .prod-row .row-right {
+  /* ── LÍNEAS NUEVAS: layout de tarjeta de producto en móvil ── */
+  #screen-productos .list-row {
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 10px 12px;
+    align-items: flex-start;
+  }
+  #screen-productos .row-icon {
+    flex-shrink: 0;
+    align-self: center;
+  }
+  #screen-productos .row-body {
+    flex: 1;
+    min-width: 0;
+    padding-right: 6px;
+  }
+  #screen-productos .row-name {
+    white-space: normal;
+    word-break: break-word;
+    font-size: .88rem;
+    line-height: 1.3;
+  }
+  #screen-productos .row-sub {
+    font-size: .72rem;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #screen-productos .row-right {
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 6px;
-    flex-wrap: wrap;
+    margin-top: 8px;
+    flex-wrap: nowrap;
   }
-  .prod-row .row-icon { flex-shrink: 0; }
+  #screen-productos .row-right > div[onclick] {
+    flex: 1;
+    text-align: left;
+    margin-right: 0;
+  }
+  #screen-productos .row-amount {
+    font-size: .85rem;
+    white-space: nowrap;
+  }
+  #screen-productos .row-date {
+    font-size: .65rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+  }
+  #screen-productos .row-right .btn-ghost,
+  #screen-productos .row-right .btn-danger {
+    flex-shrink: 0;
+    font-size: .7rem;
+    padding: 5px 9px;
+    white-space: nowrap;
+  }
+  /* ── FIN LÍNEAS NUEVAS ── */
 
   /* ════════════════════════════════════════════════
      ÍTEM "MÁS" — pegado a la derecha del bottom bar
@@ -772,6 +866,22 @@ html.dark button[onclick="exportReportePDF()"] {
     border-left: 1.5px solid rgba(255,255,255,.1);
   }
 }
+
+/* ════════════════════════════════════════════════
+   INVENTARIO — control de visibilidad topbar
+   Las filas móviles se ocultan en desktop;
+   topbar-actions se oculta en móvil (via CSS arriba)
+════════════════════════════════════════════════ */
+/* ── LÍNEAS NUEVAS: filas móviles ocultas por defecto (desktop) ── */
+.inv-topbar-row1,
+.inv-topbar-row2,
+.inv-topbar-row3 { display: none; }
+@media (max-width: 600px) {
+  .inv-topbar-row1 { display: flex; }
+  .inv-topbar-row2 { display: flex; }
+  .inv-topbar-row3 { display: block; }
+}
+/* ── FIN LÍNEAS NUEVAS ── */
 
 /* ════════════════════════════════════════════════
    MODAL "MÁS" — fuera del media query
@@ -1353,24 +1463,47 @@ html.dark button[onclick="exportReportePDF()"] {
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="screen" id="screen-productos">
   <div class="topbar">
-    <div><div class="topbar-title">Inventario</div></div>
-    <!-- ── MODIFICADO: nuevo orden → +Agregar | Productos | Servicios | Historial de Movimientos | Catálogo ── -->
-    <div class="topbar-actions" style="flex-wrap:wrap;gap:6px;">
-      <button class="btn btn-primary btn-sm" onclick="openProductModal()">+ Agregar</button>
+    <!-- ── LÍNEAS NUEVAS: topbar en 3 filas para móvil ── -->
+
+    <!-- Fila 1 (solo móvil): título + botón agregar -->
+    <div class="inv-topbar-row1">
+      <div><div class="topbar-title">Inventario</div></div>
+      <button class="btn btn-primary btn-sm" onclick="openProductModal()">➕ Agregar</button>
+    </div>
+
+    <!-- Fila 2 (solo móvil): tabs -->
+    <div class="inv-topbar-row2">
       <div class="segment">
         <button class="seg-btn active" id="pt-productos" onclick="setProdTab('productos',this)">&#x1F4E6; Productos</button>
         <button class="seg-btn" id="pt-servicios" onclick="setProdTab('servicios',this)">&#x1F6E0;&#xFE0F; Servicios</button>
-        <!-- ── AGREGADO: nuevo tab Historial de Movimientos ── -->
         <button class="seg-btn" id="pt-historial" onclick="setProdTab('historial',this)">&#x1F4CB; Historial</button>
       </div>
-      <!-- ── AGREGADO: botón Catálogo al final ── -->
+    </div>
+
+    <!-- Fila 3 (solo móvil): botón Catálogo -->
+    <div class="inv-topbar-row3">
       <button class="btn btn-ghost btn-sm" onclick="compartirCatalogo()"
         style="background:#EDE9FE;color:#5B21B6;border:1px solid #C4B5FD;"
         title="Copiar link del catálogo público">
         &#x1F517; Catálogo
       </button>
     </div>
-    <!-- ── FIN MODIFICADO ── -->
+
+    <!-- topbar-actions: solo visible en desktop (oculto en móvil por CSS) -->
+    <div class="topbar-actions" style="flex-wrap:wrap;gap:6px;">
+      <button class="btn btn-primary btn-sm" onclick="openProductModal()">+ Agregar</button>
+      <div class="segment">
+        <button class="seg-btn active" onclick="setProdTab('productos', this)">&#x1F4E6; Productos</button>
+        <button class="seg-btn" onclick="setProdTab('servicios', this)">&#x1F6E0;&#xFE0F; Servicios</button>
+        <button class="seg-btn" onclick="setProdTab('historial', this)">&#x1F4CB; Historial</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="compartirCatalogo()"
+        style="background:#EDE9FE;color:#5B21B6;border:1px solid #C4B5FD;"
+        title="Copiar link del catálogo público">
+        &#x1F517; Catálogo
+      </button>
+    </div>
+    <!-- ── FIN LÍNEAS NUEVAS ── -->
   </div>
   <div class="content" style="max-width:860px;">
     <div id="productos-list"></div>
