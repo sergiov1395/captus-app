@@ -1,0 +1,2442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nomi — Tu negocio</title>
+<!-- ══ LÍNEA AGREGADA: evita el error 404 de favicon ══ -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<!-- ══ FIN LÍNEA AGREGADA ══ -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<!-- ══ AGREGADO: flag-icons — banderas reales en todos los navegadores ══ -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+<!-- ══ FIN AGREGADO ══ -->
+
+<script src="supabase.min.js"></script>
+
+<style>
+:root{
+  --bg:#F4F3EE;--surface:#FFFFFF;--surface2:#EDECE6;
+  --ink:#18181B;--ink2:#52525B;--ink3:#A1A1AA;
+  --green:#16A34A;--green-l:#DCFCE7;
+  --red:#DC2626;--red-l:#FEE2E2;
+  --amber:#D97706;--amber-l:#FEF3C7;
+  --blue:#2563EB;--blue-l:#DBEAFE;
+  --purple:#7C3AED;--purple-l:#EDE9FE;
+  --border:#E4E4E7;
+  --sidebar-w:240px;
+  --font:'Plus Jakarta Sans',sans-serif;
+  --r:12px;--r-sm:8px;
+  --shadow:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;}
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--ink);color:white;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;user-select:none;}
+.sidebar-logo{padding:22px 20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px;}
+.logo-mark{width:36px;height:36px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0;}
+.logo-biz{font-weight:800;font-size:.95rem;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.logo-sub{font-size:.68rem;opacity:.45;margin-top:1px;}
+/* ── MODIFICADO: sin sb-label, reducimos margen y agregamos separador entre secciones ── */
+.sidebar-section{padding:4px 12px;margin-top:2px;}
+.sidebar-section + .sidebar-section{margin-top:0;padding-top:8px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.3);padding:0 8px;margin-bottom:4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .15s;margin-bottom:2px;font-size:.87rem;font-weight:500;}
+.nav-item:hover{background:rgba(255,255,255,.07);}
+.nav-item.active{background:rgba(255,255,255,.12);font-weight:700;}
+.nav-icon{font-size:1.05rem;width:22px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--green);color:white;border-radius:100px;padding:1px 7px;font-size:.65rem;font-weight:700;}
+.sidebar-footer{margin-top:auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.08);}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 28px 14px;position:sticky;top:0;background:var(--bg);z-index:50;border-bottom:1.5px solid var(--border);}
+.topbar-title{font-size:1.4rem;font-weight:800;letter-spacing:-.03em;}
+.topbar-sub{font-size:.8rem;color:var(--ink3);margin-top:2px;}
+.topbar-actions{display:flex;gap:8px;flex-shrink:0;}
+.content{padding:22px 28px 40px;flex:1;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:100px;border:none;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.85rem;transition:all .15s;letter-spacing:-.01em;white-space:nowrap;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--ink);color:white;}.btn-primary:hover{background:#333;}
+.btn-green{background:var(--green);color:white;}.btn-green:hover{background:#15803d;}
+.btn-ghost{background:var(--surface2);color:var(--ink);}.btn-ghost:hover{background:var(--border);}
+.btn-danger{background:var(--red-l);color:var(--red);}
+.btn-sm{padding:7px 14px;font-size:.8rem;}
+
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--r);border:1.5px solid var(--border);padding:20px;box-shadow:var(--shadow);}
+.card-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+
+/* GRIDS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;}
+
+/* STAT CARDS */
+.stat-card{background:var(--surface);border-radius:var(--r);border:1.5px solid var(--border);padding:20px;box-shadow:var(--shadow);}
+.sc-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink3);}
+.sc-val{font-size:1.75rem;font-weight:800;margin-top:6px;letter-spacing:-.04em;line-height:1;}
+.sc-sub{font-size:.75rem;color:var(--ink3);margin-top:5px;}
+
+/* LIST ROWS */
+.list-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:opacity .12s;}
+.list-row:last-child{border:none;}
+.list-row:hover{opacity:.75;}
+.row-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.row-body{flex:1;min-width:0;}
+.row-name{font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-sub{font-size:.75rem;color:var(--ink3);margin-top:2px;}
+.row-right{text-align:right;flex-shrink:0;}
+.row-amount{font-weight:800;font-size:.92rem;}
+.row-date{font-size:.7rem;color:var(--ink3);margin-top:2px;}
+
+/* INPUTS */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:.8rem;font-weight:600;color:var(--ink2);margin-bottom:5px;}
+.field .hint{font-weight:400;color:var(--ink3);display:block;font-size:.85em;margin-top:1px;}
+.field input,.field select,.field textarea{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);transition:border .15s;outline:none;-moz-appearance:textfield;}
+.field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink);background:var(--surface);}
+.field textarea{resize:vertical;min-height:70px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* TAGS */
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:100px;font-size:.68rem;font-weight:700;letter-spacing:.02em;}
+.tag-green{background:var(--green-l);color:var(--green);}
+.tag-red{background:var(--red-l);color:var(--red);}
+.tag-amber{background:var(--amber-l);color:var(--amber);}
+.tag-blue{background:var(--blue-l);color:var(--blue);}
+.tag-purple{background:var(--purple-l);color:var(--purple);}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:18px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:26px;animation:popIn .22s cubic-bezier(.34,1.3,.64,1);box-shadow:var(--shadow-lg);}
+@keyframes popIn{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:scale(1);}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-title{font-size:1.05rem;font-weight:800;letter-spacing:-.02em;}
+.modal-close{width:32px;height:32px;border-radius:8px;background:var(--surface2);border:none;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.modal-close:hover{background:var(--border);}
+
+/* SIDE PANEL */
+.side-panel{position:fixed;top:0;right:-520px;width:460px;height:100%;background:var(--surface);z-index:300;transition:right .3s cubic-bezier(.34,1.1,.64,1);overflow-y:auto;padding:26px;box-shadow:-8px 0 40px rgba(0,0,0,.15);}
+.side-panel.open{right:0;}
+.side-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:299;display:none;backdrop-filter:blur(2px);}
+.side-overlay.open{display:block;}
+
+/* SEGMENT */
+.segment{display:flex;background:var(--surface2);border-radius:100px;padding:3px;}
+.seg-btn{flex:1;padding:7px 14px;border-radius:100px;font-size:.8rem;font-weight:700;text-align:center;cursor:pointer;transition:all .2s;border:none;background:transparent;font-family:var(--font);}
+.seg-btn.active{background:var(--surface);box-shadow:0 1px 5px rgba(0,0,0,.1);}
+
+hr.divider{border:none;border-top:1px dashed var(--border);margin:14px 0;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:white;padding:12px 20px;border-radius:100px;font-size:.85rem;font-weight:600;z-index:1000;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.3,.64,1);box-shadow:0 4px 20px rgba(0,0,0,.25);pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* SCREEN */
+.screen{display:none;animation:fadeIn .2s ease;}
+.screen.active{display:flex;flex-direction:column;height:100vh;overflow-y:auto;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* EMPTY */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 30px;text-align:center;gap:10px;}
+.empty-icon{font-size:2.8rem;line-height:1;}
+.empty-text{font-size:.9rem;color:var(--ink3);line-height:1.6;}
+
+/* POS */
+/* ── MODIFICADO: grid con scroll independiente por columna ── */
+.pos-layout{display:grid;grid-template-columns:1fr 380px;height:calc(100vh - 57px);overflow:hidden;}
+.pos-products{overflow-y:auto;padding:18px 20px;min-height:0;height:100%;}
+/* ── MODIFICADO: carrito ocupa toda la altura de su columna ── */
+.pos-cart{display:flex;flex-direction:column;background:var(--surface);border-left:1.5px solid var(--border);overflow:hidden;height:100%;min-height:0;}
+.pos-search-wrap{position:relative;margin-bottom:14px;}
+.pos-search-wrap input{width:100%;padding:10px 13px 10px 38px;border:1.5px solid var(--border);border-radius:100px;font-family:var(--font);font-size:.88rem;background:var(--bg);outline:none;}
+.pos-search-wrap input:focus{border-color:var(--ink);}
+.search-ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.9rem;color:var(--ink3);pointer-events:none;}
+.cat-pills{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.cat-pill{padding:6px 14px;border-radius:100px;border:1.5px solid var(--border);background:var(--surface);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;}
+.cat-pill:hover{border-color:var(--ink);}
+.cat-pill.active{background:var(--ink);color:white;border-color:var(--ink);}
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+.pos-item{background:var(--bg);border-radius:var(--r);padding:14px;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+.pos-item:hover{border-color:var(--ink);transform:translateY(-1px);box-shadow:var(--shadow);}
+.pos-item.service{border-left:3px solid var(--purple);}
+.pi-icon{font-size:1.6rem;margin-bottom:8px;display:block;}
+.pi-name{font-weight:700;font-size:.85rem;line-height:1.3;}
+.pi-price{font-size:.8rem;color:var(--ink3);margin-top:4px;font-weight:600;}
+.pi-stock{font-size:.7rem;margin-top:4px;}
+.cart-badge{position:absolute;top:8px;right:8px;background:var(--green);color:white;border-radius:50%;width:20px;height:20px;font-size:.65rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.cart-header{padding:18px 18px 12px;border-bottom:1.5px solid var(--border);}
+.cart-items{flex:1;overflow-y:auto;padding:10px 14px;}
+.cart-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.cart-item:last-child{border:none;}
+.qty-ctrl{display:flex;align-items:center;gap:6px;}
+.qty-btn{width:26px;height:26px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;font-weight:700;transition:all .15s;}
+.qty-btn:hover{background:var(--border);}
+.qty-num{font-weight:800;font-size:.9rem;min-width:18px;text-align:center;}
+/* ── MODIFICADO: footer con altura máxima y scroll propio para no aplastar cart-items ── */
+/* ── MODIFICADO: footer fijo sin scroll, compactado ── */
+.cart-footer{
+  padding:10px 14px;
+  border-top:1.5px solid var(--border);
+  background:var(--bg);
+  flex-shrink:0;
+  overflow:visible;
+}
+.cart-footer .field{margin-bottom:6px;}
+.cart-footer .field label{font-size:.72rem;margin-bottom:3px;display:block;}
+.cart-footer .field select,
+.cart-footer .field input{padding:6px 10px;font-size:.82rem;}
+
+/* TASKS */
+.task-item{background:var(--surface);border-radius:var(--r);border:1.5px solid var(--border);padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;transition:all .2s;box-shadow:var(--shadow);}
+.task-item:hover{border-color:var(--blue);transform:translateY(-1px);}
+.task-item.overdue{border-color:var(--red);}
+.task-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;}
+.task-check:hover{border-color:var(--green);background:var(--green-l);}
+.task-body{flex:1;min-width:0;cursor:pointer;}
+.task-name{font-weight:700;font-size:.92rem;}
+.task-desc{font-size:.78rem;color:var(--ink3);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.task-footer{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
+
+/* HIST */
+.hist-item{background:var(--surface);border-radius:var(--r);border:1.5px solid var(--border);padding:16px;margin-bottom:10px;}
+
+/* BALANCE */
+.balance-hero{background:var(--ink);color:white;border-radius:var(--r);padding:26px;box-shadow:var(--shadow);}
+.bh-label{font-size:.72rem;opacity:.5;font-weight:700;text-transform:uppercase;letter-spacing:.1em;}
+.bh-val{font-size:2.5rem;font-weight:800;margin-top:6px;letter-spacing:-.05em;}
+
+/* CALC */
+.calc-result{background:var(--ink);color:white;border-radius:var(--r);padding:22px;}
+.crb-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;}
+.crb-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:#888;font-weight:700;}
+.crb-val{font-size:1.2rem;font-weight:800;margin-top:5px;letter-spacing:-.02em;}
+.crb-sub{font-size:.68rem;margin-top:2px;color:#666;}
+
+/* SETTINGS */
+.settings-section{margin-bottom:24px;}
+.ss-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.logo-upload-area{border:2px dashed var(--border);border-radius:var(--r);padding:30px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg);}
+.logo-upload-area:hover{border-color:var(--ink);background:var(--surface);}
+.logo-preview{width:80px;height:80px;object-fit:contain;border-radius:8px;}
+.printer-option{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r);border:1.5px solid var(--border);cursor:pointer;transition:all .15s;margin-bottom:8px;background:var(--surface);}
+.printer-option:hover{border-color:var(--ink);}
+.printer-option.selected{border-color:var(--ink);background:var(--ink);color:white;}
+.printer-option.selected .po-sub{color:rgba(255,255,255,.55);}
+.po-icon{font-size:1.5rem;flex-shrink:0;}
+.po-body{flex:1;}
+.po-name{font-weight:700;font-size:.9rem;}
+.po-sub{font-size:.75rem;color:var(--ink3);margin-top:2px;}
+.po-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;}
+.printer-option.selected .po-check{border-color:white;background:white;color:var(--ink);}
+
+/* ══════════════════════════════════════════════════════ */
+/* BÚSQUEDA GLOBAL — AGREGADO                            */
+/* ══════════════════════════════════════════════════════ */
+.gsearch-wrap{padding:10px 12px 6px;position:relative;}
+.gsearch-input-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.15);border-radius:9px;padding:7px 10px;transition:border .15s;}
+.gsearch-input-row:focus-within{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.14);}
+.gsearch-input-row span{font-size:.85rem;opacity:.5;flex-shrink:0;}
+.gsearch-input{background:none;border:none;outline:none;color:white;font-family:var(--font);font-size:.82rem;width:100%;}
+.gsearch-input::placeholder{color:rgba(255,255,255,.35);}
+.gsearch-clear{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:.85rem;padding:0;flex-shrink:0;line-height:1;}
+.gsearch-clear:hover{color:white;}
+.gsearch-panel{position:fixed;top:60px;left:var(--sidebar-w);margin-left:12px;width:min(420px,calc(100vw - var(--sidebar-w) - 32px));background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);z-index:200;max-height:76vh;overflow-y:auto;display:none;}
+.gsearch-panel.open{display:block;}
+.gsp-section{padding:10px 14px 6px;}
+.gsp-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.gsp-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r-sm);cursor:pointer;transition:background .1s;}
+.gsp-item:hover{background:var(--surface2);}
+.gsp-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;}
+.gsp-body{flex:1;min-width:0;}
+.gsp-name{font-weight:700;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gsp-sub{font-size:.75rem;color:var(--ink3);margin-top:1px;}
+.gsp-val{font-size:.82rem;font-weight:800;flex-shrink:0;}
+.gsp-empty{padding:24px;text-align:center;color:var(--ink3);font-size:.85rem;}
+.gsearch-backdrop{display:none;position:fixed;inset:0;z-index:199;}
+.gsearch-backdrop.open{display:block;}
+/* ══════════════════════════════════════════════════════ */
+/* FIN BÚSQUEDA GLOBAL                                   */
+/* ══════════════════════════════════════════════════════ */
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+::-webkit-scrollbar-thumb:hover{background:var(--ink3);}
+
+/* ══════════════════════════════════════════════════════
+   MODO OSCURO — AGREGADO
+   Al agregar la clase .dark al <html>, estas variables
+   sobreescriben las de :root en todo el documento
+   ══════════════════════════════════════════════════════ */
+html.dark {
+  --bg:       #0F0F12;
+  --surface:  #1A1A20;
+  --surface2: #252530;
+  --ink:      #F4F4F6;
+  --ink2:     #A1A1AA;
+  --ink3:     #71717A;
+  --border:   #2E2E38;
+  --green:    #22C55E;
+  --green-l:  #052e16;
+  --red:      #F87171;
+  --red-l:    #2a0a0a;
+  --amber:    #FCD34D;
+  --amber-l:  #2d1f00;
+  --blue:     #60A5FA;
+  --blue-l:   #0c1f3d;
+  --purple:   #A78BFA;
+  --purple-l: #1e0a3d;
+  --shadow:   0 1px 4px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.6);
+}
+
+/* Transición suave al cambiar de tema */
+html { transition: background .2s, color .2s; }
+*, *::before, *::after { transition: background-color .15s, border-color .15s, color .1s; }
+
+/* El sidebar en dark mode tiene un tono distinto para diferenciarse */
+html.dark .sidebar { background: #111118; }
+
+/* Inputs en dark mode */
+html.dark .field input,
+html.dark .field select,
+html.dark .field textarea,
+html.dark .pos-search-wrap input { color: var(--ink); }
+
+/* Toggle de modo oscuro en el sidebar footer */
+.dark-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: .87rem;
+  font-weight: 500;
+  color: rgba(255,255,255,.65);
+  margin-bottom: 4px;
+  user-select: none;
+  transition: background .15s;
+}
+.dark-toggle:hover { background: rgba(255,255,255,.07); }
+.dark-toggle-track {
+  width: 34px; height: 19px;
+  background: rgba(255,255,255,.15);
+  border-radius: 100px;
+  margin-left: auto;
+  flex-shrink: 0;
+  position: relative;
+  transition: background .2s;
+}
+html.dark .dark-toggle-track { background: var(--green); }
+.dark-toggle-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 15px; height: 15px;
+  background: white;
+  border-radius: 50%;
+  transition: transform .2s cubic-bezier(.34,1.3,.64,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+html.dark .dark-toggle-thumb { transform: translateX(15px); }
+
+/* ── CORRECCIONES DE CONTRASTE EN DARK MODE ── */
+html.dark .btn-primary{background:#e4e4e7;color:#0F0F12;}
+html.dark .btn-primary:hover{background:#f4f4f6;}
+html.dark .btn-ghost{color:var(--ink);}
+html.dark .printer-option.selected{background:#e4e4e7;border-color:#e4e4e7;color:#0F0F12;}
+html.dark .printer-option.selected .po-sub{color:rgba(0,0,0,.55);}
+html.dark .printer-option.selected .po-check{border-color:#0F0F12;background:#0F0F12;color:white;}
+html.dark .balance-hero{background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;}
+html.dark .calc-result{background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;}
+html.dark .crb-label{color:#94a3b8;}
+html.dark .crb-sub{color:#64748b;}
+html.dark .seg-btn.active{background:#2d2d3a;color:var(--ink);box-shadow:0 1px 5px rgba(0,0,0,.4);}
+html.dark .segment{background:#1a1a24;}
+html.dark #home-stock-banner{background:#2d1f00 !important;border-color:#92400e !important;color:var(--amber) !important;}
+html.dark .cat-pill.active{background:#e4e4e7;color:#0F0F12;border-color:#e4e4e7;}
+html.dark .topbar{background:var(--bg);border-color:var(--border);}
+html.dark .cart-footer{background:var(--bg);}
+html.dark .modal-close{background:#2a2a35;color:var(--ink);}
+html.dark .modal-close:hover{background:var(--border);}
+
+/* ── tabs inactivos del segment: texto visible en dark ── */
+html.dark .seg-btn:not(.active){color:#94a3b8;}
+
+/* ── botón Excel en Reportes (colores hardcodeados en HTML) ── */
+html.dark button[onclick="exportReporteExcel()"] {
+  background: #052e16 !important;
+  color: #4ade80 !important;
+  border-color: #166534 !important;
+}
+
+/* ── botón PDF en Reportes (colores hardcodeados en HTML) ── */
+html.dark button[onclick="exportReportePDF()"] {
+  background: #2a0a0a !important;
+  color: #f87171 !important;
+  border-color: #7f1d1d !important;
+}
+/* ══════════════════════════════════════════════════════
+   FIN MODO OSCURO
+   ══════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE MÓVIL — CORREGIDO v2
+   Convierte el sidebar en bottom nav, apila los grids
+   ══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── La app pasa de fila a columna ── */
+  .app { flex-direction: column; height: 100dvh; }
+
+  /* ── SIDEBAR se convierte en barra de navegación inferior ── */
+  .sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    order: 2;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+    border-top: 1.5px solid rgba(255,255,255,.1);
+    flex-shrink: 0;
+  }
+
+  /* Ocultar logo, labels, footer y búsqueda del sidebar en móvil */
+  .sidebar-logo,
+  .gsearch-wrap,
+  .gsearch-panel,
+  .gsearch-backdrop,
+  .sidebar-footer,
+  .sb-label { display: none !important; }
+
+  /* Las secciones del sidebar se ponen en fila */
+  .sidebar-section {
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Cada nav-item se convierte en botón de tab compacto */
+  .nav-item {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 10px 6px;
+    border-radius: 0;
+    font-size: .58rem;
+    font-weight: 600;
+    min-width: 52px;
+    margin: 0;
+    text-align: center;
+    white-space: nowrap;
+    position: relative;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.07); }
+  .nav-item.active { background: rgba(255,255,255,.14); }
+  .nav-icon { font-size: 1.2rem; width: auto; display: block; }
+  .nav-badge { position: absolute; top: 4px; right: 6px; font-size: .55rem; padding: 1px 5px; }
+
+  /* ── TOPBAR: agrega búsqueda global en móvil ── */
+  .topbar {
+    padding: 10px 14px 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .topbar-title { font-size: 1.05rem; }
+  .topbar-sub { font-size: .7rem; }
+  .topbar-actions { gap: 5px; }
+  .topbar-actions .btn { font-size: .72rem; padding: 6px 10px; }
+
+  /* Buscador global visible dentro del topbar en móvil */
+  .mobile-search-bar {
+    display: flex !important;
+    width: 100%;
+    order: 3;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    align-items: center;
+    gap: 7px;
+  }
+  .mobile-search-bar input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: var(--font);
+    font-size: .85rem;
+    color: var(--ink);
+  }
+  .mobile-search-bar input::placeholder { color: var(--ink3); }
+  .mobile-search-bar span { color: var(--ink3); font-size: .9rem; }
+  .mobile-search-bar button {
+    background: none; border: none;
+    color: var(--ink3); cursor: pointer; font-size: .85rem;
+  }
+  .mobile-search-bar button:hover { color: var(--ink); }
+
+  /* Panel de resultados en móvil */
+  .gsearch-panel {
+    display: none;
+    position: fixed;
+    top: auto;
+    bottom: 60px;   /* encima del bottom nav */
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 55vh;
+    z-index: 500;
+  }
+  .gsearch-panel.open { display: block; }
+  .gsearch-backdrop { display: none; position: fixed; inset: 0; z-index: 499; }
+  .gsearch-backdrop.open { display: block; }
+
+  /* ── MAIN ocupa el espacio restante ── */
+  .main { flex: 1; overflow-y: auto; order: 1; min-height: 0; }
+  .content { padding: 14px 12px 28px; }
+
+  /* ── GRIDS: de 4 → 2, de 3 → 2, de 2 → 1 ── */
+  .grid-4 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-3 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-2 { grid-template-columns: 1fr; gap: 10px; }
+  .field-row { grid-template-columns: 1fr; gap: 10px; }
+
+  /* ── STAT CARDS más pequeñas ── */
+  .sc-val { font-size: 1.3rem; }
+  .sc-label { font-size: .65rem; }
+  .stat-card { padding: 12px; }
+
+  /* ══════════════════════════════
+     POS — CORREGIDO
+     Productos arriba, carrito abajo
+     en scroll independiente
+  ══════════════════════════════ */
+  .pos-layout {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 112px); /* topbar ~56px + bottom-nav ~56px */
+    overflow: hidden;
+  }
+
+  /* Productos: scroll libre, ocupa el espacio disponible */
+  .pos-products {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px;
+    min-height: 0;   /* clave para que flex respete el scroll */
+  }
+
+  /* ── MODIFICADO: carrito más alto para que quepan ítems + footer fijo ── */
+  .pos-cart {
+    flex-shrink: 0;
+    height: 62vh;
+    min-height: 300px;
+    max-height: 68vh;
+    border-left: none;
+    border-top: 2px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── MODIFICADO: min-height para que siempre se vean ítems ── */
+  .cart-items {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 120px;     /* ← garantiza espacio visible aunque el footer sea largo */
+  }
+
+  /* ── MODIFICADO: footer fijo sin scroll en móvil también ── */
+  .cart-footer {
+    flex-shrink: 0;
+    padding: 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Total sticky siempre visible arriba del footer ── AGREGADO */
+  .cart-total-sticky {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px 8px;
+    background: var(--bg);
+    border-bottom: 1.5px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    flex-shrink: 0;
+  }
+
+  /* ── MODIFICADO: campos del footer sin scroll, compactados ── */
+  .cart-footer-fields {
+    padding: 6px 12px 10px;
+    overflow: visible;
+  }
+
+  .pos-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .pos-item { padding: 10px; }
+  .pi-icon { font-size: 1.4rem; margin-bottom: 5px; }
+  .pi-name { font-size: .78rem; }
+  .pi-price { font-size: .75rem; }
+
+/* ══ AGREGADO: badge de código interno en tarjeta POS ══ */
+.pi-codigo { font-size: .65rem; font-family: monospace; color: var(--ink3); background: var(--surface2); border-radius: 4px; padding: 1px 5px; margin: 2px 0 1px; display: inline-block; letter-spacing: .02em; }
+
+  /* ── MODAL a bottom sheet ── */
+  .modal {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 18px 18px 0 0;
+    align-self: flex-end;
+    max-height: 92dvh;
+  }
+  .modal-overlay { align-items: flex-end; }
+
+  /* ── SIDE PANEL a pantalla completa ── */
+  .side-panel { width: 100%; right: -100%; }
+
+  /* ── TOAST sobre el bottom nav ── */
+  .toast { bottom: 68px; right: 12px; font-size: .8rem; }
+
+  /* ── CALC grid ── */
+  .crb-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+
+/* Pantallas muy pequeñas (≤ 380px) */
+@media (max-width: 380px) {
+  .nav-item { min-width: 44px; padding: 7px 5px 5px; font-size: .5rem; }
+  .topbar-actions .btn { padding: 5px 8px; font-size: .68rem; }
+  .pos-cart { height: 55vh; } /* ── MODIFICADO: consistente con el nuevo tamaño ── */
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PANTALLA DE LOGIN ▼▼▼ BLOQUE NUEVO COMPLETO ▼▼▼           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;">
+  <div style="width:100%;max-width:360px;padding:24px;">
+
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="width:56px;height:56px;background:var(--green);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:1.5rem;color:white;margin-bottom:14px;">N</div>
+      <div style="font-size:1.5rem;font-weight:800;letter-spacing:-.03em;">Nomi</div>
+      <div style="font-size:.85rem;color:var(--ink3);margin-top:4px;">Iniciá sesión para continuar</div>
+    </div>
+
+    <div class="card" style="padding:28px;">
+      <div id="login-error" style="display:none;background:var(--red-l);color:var(--red);border-radius:8px;padding:10px 14px;font-size:.85rem;font-weight:600;margin-bottom:16px;"></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <button class="btn btn-primary" id="login-btn" style="width:100%;margin-top:6px;padding:12px;" onclick="doLogin()">
+        Ingresar →
+      </button>
+    </div>
+
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- FIN PANTALLA DE LOGIN ▲▲▲                                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="app">
+
+<div id="loading-screen" style="
+  display:flex;position:fixed;inset:0;z-index:9999;
+  background:var(--bg);flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;">
+  <div style="font-size:2.5rem;">&#x26A1;</div>
+  <div style="font-weight:800;font-size:1.1rem;letter-spacing:-.02em;">Cargando tu negocio…</div>
+  <div style="width:180px;height:4px;background:var(--border);border-radius:100px;overflow:hidden;">
+    <div style="height:100%;background:var(--green);border-radius:100px;animation:loadBar 1.4s ease-in-out infinite;"></div>
+  </div>
+  <style>@keyframes loadBar{0%{width:0%;margin-left:0}50%{width:70%;margin-left:15%}100%{width:0%;margin-left:100%}}</style>
+</div>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark" id="sb-logo-mark">N</div>
+    <div>
+      <div class="logo-biz" id="sb-biz-name">Mi Negocio</div>
+      <div class="logo-sub" id="sb-biz-type">Imprenta</div>
+    </div>
+  </div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- BÚSQUEDA GLOBAL — AGREGADO                            -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="gsearch-wrap">
+  <div class="gsearch-input-row">
+    <span>🔍</span>
+    <input class="gsearch-input" id="gsearch-input" type="text"
+      placeholder="Buscar en todo…"
+      oninput="globalSearch(this.value)"
+      onfocus="if(this.value.trim()) openGsPanel()"
+      autocomplete="off">
+    <button class="gsearch-clear" id="gsearch-clear"
+      onclick="clearGsearch()" style="display:none">✕</button>
+  </div>
+</div>
+<div class="gsearch-backdrop" id="gsearch-backdrop" onclick="clearGsearch()"></div>
+<div class="gsearch-panel" id="gsearch-panel"></div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN BÚSQUEDA GLOBAL                                   -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- SIDEBAR REESTRUCTURADO: sin Inicio, sin Gastos        -->
+  <!-- Tareas incluye botón Historial, nueva sección         -->
+  <!-- Movimientos. Inicio eliminado, arranca en Vender.     -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="sidebar-section">
+    <!-- ── ELIMINADO: nav-inicio ── -->
+    <div class="nav-item active" id="nav-pos" onclick="navTo('pos')"><span class="nav-icon">&#x1F6D2;</span>Vender</div>
+    <!-- ── MODIFICADO: Tareas ahora tiene botón Historial dentro ── -->
+    <div class="nav-item" id="nav-tareas" onclick="navTo('tareas')"><span class="nav-icon">&#x2705;</span>Tareas <span class="nav-badge" id="nb-tareas" style="display:none">0</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="nav-item" id="nav-productos" onclick="navTo('productos')"><span class="nav-icon">&#x1F4E6;</span>Inventario</div>
+    <div class="nav-item" id="nav-clientes" onclick="navTo('clientes')"><span class="nav-icon">&#x1F465;</span>Clientes</div>
+    <div class="nav-item" id="nav-fiado" onclick="navTo('fiado')"><span class="nav-icon">💳</span>Fiado/Cuentas <span class="nav-badge" id="nb-fiado" style="display:none">0</span></div>
+    <!-- ── ELIMINADO: nav-gastos (ahora está dentro de Vender) ── -->
+  </div>
+  <div class="sidebar-section">
+    <div class="nav-item" id="nav-balance" onclick="navTo('balance')"><span class="nav-icon">&#x1F4B0;</span>Caja / Balance</div>
+    <div class="nav-item" id="nav-reportes" onclick="navTo('reportes')"><span class="nav-icon">&#x1F4CA;</span>Reportes</div>
+    <!-- ── ELIMINADO: nav-historial (ahora aparece dentro de Tareas) ── -->
+    <div class="nav-item" id="nav-calc" onclick="navTo('calc')"><span class="nav-icon">&#x1F9EE;</span>Presupuestador</div>
+  </div>
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- NUEVA SECCIÓN: Movimientos — historial de stock        -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="sidebar-section">
+    <div class="nav-item" id="nav-movimientos" onclick="navTo('movimientos')"><span class="nav-icon">📦</span>Movimientos</div>
+  </div>
+  <div class="sidebar-footer">
+    <!-- ══ LÍNEA AGREGADA: nav configuración ══ -->
+    <!-- ══ AGREGADO ETAPA 4: nav Mi Plan ══ -->
+    <div class="nav-item" id="nav-plan" onclick="navTo('plan')" style="margin-bottom:4px;">
+      <span class="nav-icon">⭐</span>Mi Plan
+    </div>
+    <!-- ══ FIN AGREGADO ETAPA 4 ══ -->
+    <div class="nav-item" id="nav-config" onclick="navTo('config')" style="margin-bottom:4px;">
+      <span class="nav-icon">⚙️</span>Configuración
+    </div>
+    <!-- ══ FIN LÍNEA AGREGADA ══ -->
+
+    <!-- ══ AGREGADO: toggle modo oscuro ══ -->
+    <div class="dark-toggle" onclick="toggleDarkMode()" title="Modo oscuro">
+      <span class="nav-icon" id="dark-icon">🌙</span>
+      <span id="dark-label">Modo oscuro</span>
+      <div class="dark-toggle-track">
+        <div class="dark-toggle-thumb"></div>
+      </div>
+    </div>
+    <!-- ══ FIN toggle modo oscuro ══ -->
+
+    <button onclick="doLogout()" class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:10px;opacity:.7;">
+      <span>↪</span> Cerrar sesión
+    </button>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- ── MODIFICADO: inicio ya no es la pantalla activa al arrancar ── -->
+<div class="screen" id="screen-inicio">
+<div class="topbar">
+    <div><div class="topbar-title" id="home-title">Buenos días &#x1F44B;</div><div class="topbar-sub" id="home-sub">Mi Negocio</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="navTo('pos')">&#x1F6D2; Nueva venta</button>
+      <button class="btn btn-ghost btn-sm" onclick="openGastoModal()">&#x1F4B8; Gasto</button>
+      <button class="btn btn-primary btn-sm" onclick="navTo('tareas');setTimeout(openTaskModal,80)">+ Tarea</button>
+    </div>
+    <!-- BÚSQUEDA GLOBAL MÓVIL — solo visible en pantallas pequeñas -->
+    <div class="mobile-search-bar" style="display:none;">
+      <span>🔍</span>
+      <input type="text"
+        placeholder="Buscar productos, clientes, ventas…"
+        oninput="globalSearch(this.value); document.getElementById('gsearch-input').value=this.value;"
+        onfocus="if(this.value.trim()) openGsPanel()"
+        autocomplete="off">
+      <button onclick="this.previousElementSibling.value=''; globalSearch(''); clearGsearch();">✕</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="grid-4" style="margin-bottom:22px;">
+      <div class="stat-card"><div class="sc-label">Caja del día</div><div class="sc-val" id="h-caja">Gs 0</div><div class="sc-sub" id="h-caja-sub">0 ventas</div></div>
+      <div class="stat-card"><div class="sc-label">Ingresos hoy</div><div class="sc-val" style="color:var(--green)" id="h-ing">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Gastos hoy</div><div class="sc-val" style="color:var(--red)" id="h-gst">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Tareas pendientes</div><div class="sc-val" id="h-tasks">0</div><div class="sc-sub" id="h-tasks-sub"></div></div>
+    </div>
+    <div class="grid-2">
+      <!-- ── AGREGADO: banner stock crítico ── -->
+<div id="home-stock-banner" style="display:none;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:12px;padding:14px 16px;margin-bottom:16px;"></div>
+<!-- ── FIN AGREGADO ── -->
+      <div class="card"><div class="card-title">&#x1F6D2; Últimas ventas</div><div id="home-ventas-list"></div></div>
+      <div class="card"><div class="card-title">&#x2705; Próximas tareas</div><div id="home-tareas-list"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODIFICADO: botón renombrado a "Registrar gasto" y TC movido al topbar ── -->
+<!-- ── MODIFICADO: pos es ahora la pantalla activa al arrancar ── -->
+<div class="screen active" id="screen-pos">
+  <div class="topbar">
+    <div><div class="topbar-title">Punto de Venta</div><div class="topbar-sub">Clic en un producto para agregar al carrito</div></div>
+    <div class="topbar-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <!-- ── MODIFICADO: widget TC grilla fija 2x2, máx 4 monedas ── -->
+      <div id="pos-tc-bar" style="
+        display:none;
+        align-items:center;
+        gap:6px;
+        font-size:.8rem;
+        flex-shrink:0;">
+        <span style="font-weight:700;color:var(--ink3);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;flex-shrink:0;">💱</span>
+        <div id="pos-tc-pills" style="
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          grid-template-rows:auto auto;
+          gap:4px;"></div>
+      </div>
+      <!-- ── FIN MODIFICADO TC inline ── -->
+      <!-- ── MODIFICADO: botón apunta a openGastoModal() igual que en sección Gastos ── -->
+      <button class="btn btn-danger btn-sm" onclick="openGastoModal()">+ Registrar gasto</button>
+    </div>
+  </div>
+  <!-- ── ELIMINADO: bloque separado de pos-tc-bar (ahora está en el topbar) ── -->
+  <div class="pos-layout">
+    <div class="pos-products">
+      <!-- ══ MODIFICADO: búsqueda por nombre Y código. Enter = agregar al carrito ══ -->
+      <div class="pos-search-wrap">
+        <span class="search-ic">&#x1F50D;</span>
+        <input type="text" placeholder="Buscar por nombre o código…" id="pos-search"
+          oninput="renderPosGrid()"
+          onkeydown="posSearchKeydown(event)">
+      </div>
+      <!-- ══ FIN MODIFICADO ══ -->
+      <div class="cat-pills" id="pos-cat-pills"></div>
+      <div class="pos-grid" id="pos-grid"></div>
+    </div>
+    <div class="pos-cart">
+      <div class="cart-header">
+        <div style="font-weight:800;font-size:1rem;">&#x1F6D2; Carrito <span id="cart-count-lbl" style="font-weight:400;color:var(--ink3);font-size:.8rem;"></span></div>
+      </div>
+      <div class="cart-items" id="cart-items">
+        <div class="empty-state" style="padding:40px 0"><div class="empty-icon">&#x1F6D2;</div><div class="empty-text">Carrito vacío.<br>Agregá productos.</div></div>
+      </div>
+      <div class="cart-footer">
+        <div class="cart-footer-fields">
+        <!-- ══ MODIFICADO: descuento colapsado dentro de la fila del total ══ -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+          <span style="font-size:.78rem;color:var(--ink3);">Subtotal</span>
+          <span style="font-size:.82rem;color:var(--ink3);" id="cart-subtotal">Gs 0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-weight:700;font-size:.92rem;">Total</span>
+            <!-- badge descuento aplicado -->
+            <span id="cart-desc-badge" style="display:none;font-size:.68rem;font-weight:700;color:var(--red);background:var(--red-l);border-radius:100px;padding:1px 7px;" id="cart-desc-label">—</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-weight:800;font-size:1.25rem;letter-spacing:-.03em;" id="cart-total">Gs 0</span>
+            <button onclick="toggleDescuentoPanel()" title="Aplicar descuento"
+              style="background:none;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:.8rem;padding:2px 7px;color:var(--ink3);line-height:1.4;">🏷️</button>
+          </div>
+        </div>
+        <!-- panel desplegable de descuento, oculto por defecto -->
+        <div id="cart-descuento-wrap" style="display:none;background:var(--surface2);border-radius:var(--r-sm);padding:7px 10px;margin-bottom:6px;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="cart-desc-tipo" style="padding:4px 6px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.8rem;background:var(--bg);outline:none;flex-shrink:0;">
+              <option value="pct">%</option>
+              <option value="fijo">Gs</option>
+            </select>
+            <input type="number" id="cart-desc-val" min="0" placeholder="0" oninput="previewDescuento()"
+              style="flex:1;padding:4px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.85rem;background:var(--bg);outline:none;">
+            <button onclick="aplicarDescuento()" class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:.78rem;padding:3px 9px;">✓</button>
+            <button onclick="quitarDescuento()" style="background:none;border:none;cursor:pointer;font-size:.85rem;color:var(--red);font-weight:700;padding:2px 4px;">✕</button>
+          </div>
+          <div id="cart-desc-monto" style="font-size:.75rem;font-weight:700;color:var(--red);margin-top:4px;display:none;">−Gs 0</div>
+        </div>
+        <!-- ══ FIN MODIFICADO ══ -->
+        <!-- ══ MODIFICADO: campos en línea (label + input lado a lado) ══ -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;width:72px;flex-shrink:0;">👤 Cliente</label>
+          <select id="cart-cliente" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;"></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;width:72px;flex-shrink:0;">💳 Pago</label>
+          <select id="cart-pago" onchange="document.getElementById('cc-vencimiento-wrap').style.display=this.value==='Cuenta corriente'?'flex':'none'" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;">
+            <option>Efectivo</option><option>Transferencia</option><option>Tarjeta</option><option>Cuenta corriente</option>
+          </select>
+        </div>
+        <!-- ══ MODIFICADO: nota en línea ══ -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;width:72px;flex-shrink:0;">📝 Nota</label>
+          <input type="text" id="cart-nota" placeholder="opcional"
+            style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+                   font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;box-sizing:border-box;">
+        </div>
+
+        <!-- ══ MODIFICADO: fecha vencimiento en línea ══ -->
+        <div id="cc-vencimiento-wrap" style="display:none;align-items:center;gap:8px;margin-bottom:6px;">
+          <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;width:72px;flex-shrink:0;">📅 Vence</label>
+          <input type="date" id="cc-fecha-vencimiento-pos"
+            style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+                   font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;box-sizing:border-box;">
+        </div>
+        <!-- ══ FIN MODIFICADO ══ -->
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- FASE 3: Selector de moneda de cobro                   -->
+        <!-- Solo aparece si hay monedas secundarias habilitadas   -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="cobro-moneda-wrap" style="display:none;margin-bottom:10px;">
+          <div style="font-size:.75rem;font-weight:700;color:var(--ink3);
+            text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">
+            💱 Cobrar en
+          </div>
+          <div id="cobro-moneda-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+          <div id="cobro-equivalente" style="display:none;
+            background:var(--surface2);border-radius:var(--r-sm);
+            padding:8px 12px;font-size:.82rem;">
+          </div>
+        </div>
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- FIN FASE 3 selector moneda                            -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <button class="btn btn-green" style="width:100%;font-size:.92rem;padding:12px;" onclick="finalizarVenta()">&#x2713; Cobrar</button>
+        </div><!-- fin cart-footer-fields ── AGREGADO -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PANTALLA TAREAS — MODIFICADO: botón Historial agregado -->
+<!-- al topbar para abrir modal de tareas completadas       -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-tareas">
+  <div class="topbar">
+    <div><div class="topbar-title">Tareas</div><div class="topbar-sub" id="tareas-sub">Sin tareas pendientes</div></div>
+    <!-- ── MODIFICADO: se agrega botón Historial junto a Nueva tarea ── -->
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openHistorialTareasModal()" style="gap:6px;">
+        📋 Historial
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openTaskModal()">+ Nueva tarea</button>
+    </div>
+  </div>
+  <div class="content" style="max-width:860px;"><div id="tareas-list"></div></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL HISTORIAL DE TAREAS COMPLETADAS — NUEVO         -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="historial-tareas-overlay" onclick="closeOverlay('historial-tareas-overlay',event)">
+  <div class="modal" style="max-width:640px;width:95%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;">📋 Historial de Tareas</div>
+        <div style="font-size:.78rem;color:var(--ink3);margin-top:2px;" id="historial-tareas-sub">Tareas completadas</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('historial-tareas-overlay')">✕</button>
+    </div>
+    <!-- Buscador dentro del modal -->
+    <div style="position:relative;margin-bottom:14px;">
+      <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none;">🔍</span>
+      <input
+        id="historial-tareas-search"
+        type="text"
+        placeholder="Buscar tarea completada…"
+        oninput="renderHistorialTareasModal()"
+        style="width:100%;padding:9px 10px 9px 32px;border:1.5px solid var(--border);
+          border-radius:var(--r-sm);background:var(--surface);
+          color:var(--ink);font-size:.83rem;box-sizing:border-box;font-family:var(--font);"
+      >
+    </div>
+    <div id="historial-tareas-modal-list" style="max-height:420px;overflow-y:auto;"></div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN MODAL HISTORIAL DE TAREAS                         -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PANTALLA HISTORIAL — MODIFICADO: se agrega filtro     -->
+<!-- por cliente (dropdown + buscador) sobre la lista      -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-historial">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Historial</div>
+      <div class="topbar-sub" id="historial-sub">Tareas completadas</div>
+    </div>
+    <!-- ── AGREGADO: botón limpiar filtro ── -->
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" id="btn-limpiar-filtro-historial"
+        style="display:none;font-size:.78rem;"
+        onclick="limpiarFiltroHistorial()">✕ Todos</button>
+    </div>
+  </div>
+
+  <div class="content" style="max-width:860px;">
+
+    <!-- ── AGREGADO: barra de filtros ── -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;">
+
+      <!-- Buscador de texto libre -->
+      <div style="position:relative;flex:1;min-width:180px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none;">🔍</span>
+        <input
+          id="historial-search"
+          type="text"
+          placeholder="Buscar en ventas…"
+          oninput="renderVentasHistorial()"
+          style="width:100%;padding:9px 10px 9px 32px;border:1.5px solid var(--border);
+            border-radius:var(--r-sm);background:var(--surface);
+            color:var(--ink1);font-size:.83rem;box-sizing:border-box;"
+        >
+      </div>
+
+      <!-- Selector de cliente -->
+      <select
+        id="historial-cliente-select"
+        onchange="renderVentasHistorial()"
+        style="padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+          background:var(--surface);color:var(--ink1);font-size:.83rem;
+          min-width:160px;max-width:220px;cursor:pointer;">
+        <option value="">👥 Todos los clientes</option>
+      </select>
+
+      <!-- Selector de método de pago -->
+      <select
+        id="historial-pago-select"
+        onchange="renderVentasHistorial()"
+        style="padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+          background:var(--surface);color:var(--ink1);font-size:.83rem;
+          min-width:130px;cursor:pointer;">
+        <option value="">💳 Todo método</option>
+        <option value="Efectivo">💵 Efectivo</option>
+        <option value="Transferencia">🏦 Transferencia</option>
+        <option value="Tarjeta">💳 Tarjeta</option>
+        <option value="QR">📱 QR</option>
+        <option value="Fiado">📋 Fiado</option>
+      </select>
+
+    </div>
+    <!-- ── FIN BARRA DE FILTROS ── -->
+
+    <!-- La lista de ventas (antes era historial-list de tareas) -->
+    <div id="ventas-historial-list"></div>
+
+    <!-- Lista de tareas completadas (queda igual, al final) -->
+    <div id="historial-list" style="margin-top:16px;"></div>
+
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN PANTALLA HISTORIAL MODIFICADA                     -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PANTALLA MOVIMIENTOS — REDISEÑADA                     -->
+<!-- Muestra el mismo historial de Caja/Balance            -->
+<!-- (ventas + gastos) con filtros completos               -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-movimientos">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">💸 Movimientos</div>
+      <div class="topbar-sub" id="movimientos-sub">Historial de ingresos y egresos</div>
+    </div>
+    <div class="topbar-actions" style="gap:6px;flex-wrap:wrap;">
+      <!-- Filtro tipo -->
+      <select id="mov-filtro-tipo" onchange="renderMovimientosCaja()"
+        style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+          background:var(--surface);color:var(--ink);font-size:.82rem;cursor:pointer;font-family:var(--font);">
+        <option value="">🔀 Todo</option>
+        <option value="i">🛒 Solo ingresos</option>
+        <option value="e">💸 Solo egresos</option>
+      </select>
+      <!-- Buscador -->
+      <div style="position:relative;">
+        <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:.85rem;pointer-events:none;">🔍</span>
+        <input id="mov-search" type="text" placeholder="Buscar…"
+          oninput="renderMovimientosCaja()"
+          style="padding:7px 10px 7px 30px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+            background:var(--surface);color:var(--ink);font-size:.82rem;width:160px;
+            font-family:var(--font);outline:none;">
+      </div>
+    </div>
+  </div>
+  <div class="content" style="max-width:860px;">
+    <!-- Este div reutiliza el mismo id balance-list para que renderBalance() siga funcionando -->
+    <div id="balance-list"></div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN PANTALLA MOVIMIENTOS                              -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PANTALLA INVENTARIO — MODIFICADO: nuevo orden botones  -->
+<!-- + tab Historial de Movimientos integrado               -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-productos">
+  <div class="topbar">
+    <div><div class="topbar-title">Inventario</div></div>
+    <!-- ── MODIFICADO: nuevo orden → +Agregar | Productos | Servicios | Historial de Movimientos | Catálogo ── -->
+    <div class="topbar-actions" style="flex-wrap:wrap;gap:6px;">
+      <button class="btn btn-primary btn-sm" onclick="openProductModal()">+ Agregar</button>
+      <div class="segment">
+        <button class="seg-btn active" id="pt-productos" onclick="setProdTab('productos',this)">&#x1F4E6; Productos</button>
+        <button class="seg-btn" id="pt-servicios" onclick="setProdTab('servicios',this)">&#x1F6E0;&#xFE0F; Servicios</button>
+        <!-- ── AGREGADO: nuevo tab Historial de Movimientos ── -->
+        <button class="seg-btn" id="pt-historial" onclick="setProdTab('historial',this)">&#x1F4CB; Historial</button>
+      </div>
+      <!-- ── AGREGADO: botón Catálogo al final ── -->
+      <button class="btn btn-ghost btn-sm" onclick="compartirCatalogo()"
+        style="background:#EDE9FE;color:#5B21B6;border:1px solid #C4B5FD;"
+        title="Copiar link del catálogo público">
+        &#x1F517; Catálogo
+      </button>
+    </div>
+    <!-- ── FIN MODIFICADO ── -->
+  </div>
+  <div class="content" style="max-width:860px;">
+    <div id="productos-list"></div>
+    <!-- ── AGREGADO: contenedor del historial de movimientos de stock ── -->
+    <div id="stock-movimientos-list" style="display:none;"></div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN PANTALLA INVENTARIO MODIFICADA                    -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<div class="screen" id="screen-clientes">
+  <div class="topbar">
+    <div><div class="topbar-title">Clientes</div></div>
+    <div class="topbar-actions"><button class="btn btn-primary btn-sm" onclick="openClientModal()">+ Agregar</button></div>
+  </div>
+  <div class="content" style="max-width:860px;"><div id="clientes-list"></div></div>
+</div>
+
+<!-- ── AGREGADO: pantalla fiado ── -->
+<div class="screen" id="screen-fiado">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">💳 Fiado / Cuentas</div>
+      <div class="topbar-sub" id="fiado-sub">Cargando…</div>
+    </div>
+    <!-- ── MODIFICADO: se agregó buscador de cliente en fiado ── -->
+    <div class="topbar-actions" style="flex-wrap:wrap;gap:6px;align-items:center;">
+      <!-- ── LÍNEA AGREGADA: buscador de nombre ── -->
+      <div style="position:relative;">
+        <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:.85rem;pointer-events:none;">🔍</span>
+        <input
+          id="fiado-search"
+          type="text"
+          placeholder="Buscar cliente…"
+          oninput="renderFiado()"
+          style="padding:7px 10px 7px 30px;border:1.5px solid var(--border);
+            border-radius:var(--r-sm);background:var(--surface);
+            color:var(--ink1);font-size:.82rem;width:160px;
+            font-family:var(--font);outline:none;"
+        >
+      </div>
+      <!-- ── FIN LÍNEA AGREGADA ── -->
+      <div class="segment">
+        <button class="seg-btn active" id="fiado-tab-pendiente" onclick="setFiadoTab('pendiente',this)">⏳ Pendientes</button>
+        <button class="seg-btn" id="fiado-tab-pagado" onclick="setFiadoTab('pagado',this)">✅ Pagados</button>
+        <button class="seg-btn" id="fiado-tab-clientes" onclick="setFiadoTab('clientes',this)">👤 Por cliente</button>
+      </div>
+    </div>
+    <!-- ── FIN MODIFICADO ── -->
+  </div>
+  <div class="content" style="max-width:860px;">
+    <!-- Resumen rápido -->
+    <div class="grid-3" style="margin-bottom:20px;" id="fiado-resumen-cards">
+      <div class="stat-card">
+        <div class="sc-label">Total pendiente</div>
+        <div class="sc-val" style="color:var(--red)" id="fiado-total-pendiente">Gs 0</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-label">Clientes con deuda</div>
+        <div class="sc-val" id="fiado-clientes-deuda">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-label">Cobrado (histórico)</div>
+        <div class="sc-val" style="color:var(--green)" id="fiado-total-cobrado">Gs 0</div>
+      </div>
+    </div>
+    <div id="fiado-list"></div>
+  </div>
+</div>
+<!-- ── FIN pantalla fiado ── -->
+
+<div class="screen" id="screen-gastos">
+  <div class="topbar">
+    <div><div class="topbar-title">Gastos</div></div>
+    <div class="topbar-actions"><button class="btn btn-danger btn-sm" onclick="openGastoModal()">+ Registrar gasto</button></div>
+  </div>
+  <div class="content" style="max-width:860px;"><div id="gastos-list"></div></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PANTALLA BALANCE — REORGANIZADA                                   -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-balance">
+  <!-- ── TOPBAR: título + badge estado + botones ── -->
+  <div class="topbar" style="flex-shrink:0;">
+    <div><div class="topbar-title">Caja / Balance</div></div>
+    <div class="topbar-actions" style="display:flex;align-items:center;gap:8px;">
+      <!-- Badge de estado inline con los botones — MOVIDO -->
+      <span id="caja-status-badge-balance"
+        style="display:inline-flex;align-items:center;gap:6px;
+          font-size:.78rem;font-weight:700;padding:5px 12px;
+          border-radius:100px;background:var(--red-l);color:var(--red);">
+        🔴 Cerrada
+      </span>
+      <button class="btn btn-green btn-sm" id="btn-abrir-caja" onclick="reabrirCaja()" style="display:none;">🔓 Abrir</button>
+      <button class="btn btn-danger btn-sm" id="btn-cerrar-caja" onclick="openCierreCaja()" style="display:none;">🔒 Cerrar caja</button>
+    </div>
+  </div>
+
+  <!-- ── ZONA SCROLLABLE PRINCIPAL ── -->
+  <div style="flex:1;overflow-y:auto;padding:18px 28px 24px;display:flex;flex-direction:column;gap:14px;">
+
+    <!-- FILA 1: Turno activo (solo visible cuando hay caja abierta) -->
+    <div id="caja-turno-activo" style="display:none;">
+      <div class="card" style="border-left:4px solid var(--green);padding:14px 18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:3px;">🟢 Turno abierto</div>
+            <div style="font-weight:800;font-size:1rem;" id="caja-turno-titulo">Caja del día</div>
+            <div style="font-size:.78rem;color:var(--ink3);margin-top:1px;" id="caja-turno-sub">Monto inicial: Gs 0</div>
+          </div>
+          <div style="display:flex;gap:18px;text-align:center;">
+            <div><div style="font-size:.68rem;color:var(--ink3);font-weight:600;">Ventas hoy</div><div style="font-weight:800;color:var(--green);font-size:1rem;" id="caja-ventas-hoy">0</div></div>
+            <div><div style="font-size:.68rem;color:var(--ink3);font-weight:600;">Ingresos hoy</div><div style="font-weight:800;color:var(--green);font-size:1rem;" id="caja-ing-hoy">Gs 0</div></div>
+            <div><div style="font-size:.68rem;color:var(--ink3);font-weight:600;">Gastos hoy</div><div style="font-weight:800;color:var(--red);font-size:1rem;" id="caja-gst-hoy">Gs 0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILA 1: Saldo / Ingresos / Egresos -->
+    <div class="grid-3">
+      <div class="balance-hero"><div class="bh-label">Saldo total</div><div class="bh-val" id="bal-total">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Ingresos totales</div><div class="sc-val" style="color:var(--green)" id="bal-ing">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Egresos totales</div><div class="sc-val" style="color:var(--red)" id="bal-egr">Gs 0</div></div>
+    </div>
+
+    <!-- ══ MODIFICADO: nuevo layout de 2 columnas                            ══ -->
+    <!-- ══ Columna izquierda: Diferencia de cambio (arriba) + Saldos (abajo) ══ -->
+    <!-- ══ Columna derecha: Historial de turnos (ocupa toda la altura)        ══ -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;">
+
+      <!-- COLUMNA IZQUIERDA: apiladas verticalmente -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Apartado 3: Diferencia de cambio (ARRIBA) -->
+        <!-- ++ MOVIDO: antes estaba debajo de "Saldos por moneda", ahora va arriba ++ -->
+        <div id="bal-dif-cambio-wrap" style="display:none;">
+          <div class="card" style="border-left:4px solid var(--amber);padding:14px 16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+              <div>
+                <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:2px;">📊 Diferencia de cambio</div>
+                <div style="font-size:.72rem;color:var(--ink3);">Últimas conversiones</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div id="bal-dif-total" style="font-weight:800;font-size:.95rem;"></div>
+                <button class="btn btn-ghost btn-sm" onclick="openVerConversiones()" style="font-size:.75rem;padding:5px 10px;">👁 Ver</button>
+                <button class="btn btn-ghost btn-sm" onclick="openRegistrarConversion()" style="font-size:.75rem;padding:5px 10px;">➕ Registrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Apartado 4: Saldos por moneda (ABAJO) -->
+        <!-- ++ SIN CAMBIOS en contenido, solo reubicado debajo de Diferencia de cambio ++ -->
+        <div id="bal-monedas-wrap" style="display:none;">
+          <div class="card" style="padding:14px 16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);">💰 Saldos por moneda</div>
+              <span style="font-size:.68rem;color:var(--ink3);">⚠️ Referencial</span>
+            </div>
+            <div id="bal-monedas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;"></div>
+          </div>
+        </div>
+
+      </div>
+      <!-- FIN COLUMNA IZQUIERDA -->
+
+      <!-- COLUMNA DERECHA: Historial de turnos — abarca toda la altura de las dos filas -->
+      <!-- ++ MOVIDO: antes estaba en una fila separada debajo, ahora ocupa la columna derecha ++ -->
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;">
+        <div class="card-title" style="flex-shrink:0;">🕐 Historial de turnos</div>
+        <div id="turnos-historial-list" style="overflow-y:auto;max-height:400px;"></div>
+      </div>
+
+    </div>
+    <!-- ══ FIN MODIFICADO: nuevo layout Diferencia de cambio / Saldos / Historial ══ -->
+
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN PANTALLA BALANCE REORGANIZADA                     -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL CIERRE DE CAJA ▼▼▼ NUEVO ▼▼▼                  -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="caja-cierre-overlay" onclick="closeOverlay('caja-cierre-overlay',event)">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">🔒 Cierre de Caja</div>
+      <button class="modal-close" onclick="closeModal('caja-cierre-overlay')">&#x2715;</button>
+    </div>
+
+    <!-- Resumen automático del turno -->
+    <div style="background:var(--surface2);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;">Resumen del turno</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><div style="font-size:.72rem;color:var(--ink3);">Monto inicial</div><div style="font-weight:700;" id="cierre-monto-inicial">Gs 0</div></div>
+        <div><div style="font-size:.72rem;color:var(--ink3);">Total ventas</div><div style="font-weight:700;color:var(--green);" id="cierre-total-ventas">Gs 0</div></div>
+        <div><div style="font-size:.72rem;color:var(--ink3);">Ventas efectivo</div><div style="font-weight:700;" id="cierre-efectivo">Gs 0</div></div>
+        <div><div style="font-size:.72rem;color:var(--ink3);">Otros medios</div><div style="font-weight:700;" id="cierre-otros">Gs 0</div></div>
+        <div><div style="font-size:.72rem;color:var(--ink3);">Gastos del día</div><div style="font-weight:700;color:var(--red);" id="cierre-gastos">Gs 0</div></div>
+        <div><div style="font-size:.72rem;color:var(--ink3);">Efectivo esperado</div><div style="font-weight:800;color:var(--blue);" id="cierre-esperado">Gs 0</div></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>💵 Efectivo real en caja (conteo físico, Gs)</label>
+      <input type="number" id="cierre-monto-real" placeholder="Contá los billetes y escribí el total" min="0" oninput="calcularDiferenciaCierre()">
+    </div>
+
+    <div id="cierre-diferencia-wrap" style="display:none;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:14px;font-size:.85rem;font-weight:700;">
+    </div>
+
+    <div class="field">
+      <label>📝 Notas de cierre (opcional)</label>
+      <input type="text" id="cierre-notas" placeholder="Ej: Todo en orden, sin diferencias">
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-danger" style="flex:1;padding:12px;" onclick="confirmarCierreCaja()">🔒 Confirmar cierre</button>
+      <button class="btn btn-ghost" onclick="closeModal('caja-cierre-overlay')" style="width:90px;">Cancelar</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN MODAL CIERRE DE CAJA ▲▲▲ NUEVO ▲▲▲              -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PANTALLA REPORTES — MODIFICADO: se agregaron botones  -->
+<!-- de exportar PDF y Excel en la topbar                  -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-reportes">
+  <div class="topbar">
+    <div><div class="topbar-title">Reportes</div></div>
+    <!-- ── MODIFICADO: se agregó div flex con period-btns + botones export ── -->
+   <!-- ══ MODIFICADO: botones Hoy/Semana/Mes → selector rango de fechas ══ -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <!-- Selector Desde -->
+      <div style="display:flex;align-items:center;gap:5px;">
+        <label style="font-size:.75rem;font-weight:600;color:var(--ink3);white-space:nowrap;">Desde</label>
+        <input type="date" id="rep-fecha-desde"
+          onchange="setPeriodRango()"
+          style="padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+            background:var(--surface);color:var(--ink);font-size:.82rem;
+            font-family:var(--font);outline:none;cursor:pointer;">
+      </div>
+      <!-- Selector Hasta -->
+      <div style="display:flex;align-items:center;gap:5px;">
+        <label style="font-size:.75rem;font-weight:600;color:var(--ink3);white-space:nowrap;">Hasta</label>
+        <input type="date" id="rep-fecha-hasta"
+          onchange="setPeriodRango()"
+          style="padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+            background:var(--surface);color:var(--ink);font-size:.82rem;
+            font-family:var(--font);outline:none;cursor:pointer;">
+      </div>
+      <!-- Accesos rápidos -->
+      <div style="display:flex;gap:5px;">
+        <button class="btn btn-ghost btn-sm" onclick="setRangoRapido('hoy')">Hoy</button>
+        <button class="btn btn-ghost btn-sm" onclick="setRangoRapido('semana')">7 días</button>
+        <button class="btn btn-ghost btn-sm" onclick="setRangoRapido('mes')">Este mes</button>
+      </div>
+      <!-- ══ botones de exportación (sin cambios) ══ -->
+      <button class="btn btn-ghost btn-sm" onclick="exportReporteExcel()"
+        title="Exportar a Excel"
+        style="background:var(--green-l,#dcfce7);color:#166534;border:1px solid #bbf7d0;">
+        📊 Excel
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="exportReportePDF()"
+        title="Exportar a PDF"
+        style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;">
+        📄 PDF
+      </button>
+    </div>
+    <!-- ══ FIN MODIFICADO ══ -->
+  </div>
+<!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANTALLA REPORTES — MODIFICADO: se agregaron 3 gráficos -->
+  <!-- con Chart.js: barras por día, dona por método de pago  -->
+  <!-- y barras horizontales de top productos                 -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="content">
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FASE 5: KPIs normalizados a moneda principal          -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="grid-4" style="margin-bottom:12px;">
+      <div class="stat-card"><div class="sc-label">Ventas</div><div class="sc-val" id="rep-v">0</div></div>
+      <div class="stat-card"><div class="sc-label">Ingresos</div><div class="sc-val" style="color:var(--green)" id="rep-i">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Gastos</div><div class="sc-val" style="color:var(--red)" id="rep-g">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Ganancia</div><div class="sc-val" style="color:var(--green)" id="rep-gan">Gs 0</div></div>
+    </div>
+
+    <!-- Desglose por moneda — solo aparece si hay ventas en moneda secundaria -->
+    <div id="rep-desglose-monedas" style="display:none;margin-bottom:16px;">
+      <div class="card" style="padding:14px 18px;">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+          letter-spacing:.1em;color:var(--ink3);margin-bottom:12px;">
+          💱 Ingresos por moneda (normalizados a <span id="rep-moneda-principal-label">Gs</span>)
+        </div>
+        <div id="rep-desglose-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Sección diferencia de cambio -->
+    <div id="rep-dif-cambio-wrap" style="display:none;margin-bottom:16px;">
+      <div class="card" style="border-left:4px solid var(--amber);padding:14px 18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;
+          flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div>
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+              letter-spacing:.1em;color:var(--amber);margin-bottom:2px;">
+              📊 Diferencia de cambio del período
+            </div>
+            <div style="font-size:.78rem;color:var(--ink3);">
+              Diferencia entre lo contabilizado y lo recibido al convertir
+            </div>
+          </div>
+          <div id="rep-dif-cambio-total"
+            style="font-weight:800;font-size:1.1rem;"></div>
+        </div>
+        <div id="rep-dif-cambio-lista" style="font-size:.82rem;"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+          <button class="btn btn-ghost btn-sm" onclick="openRegistrarConversion()"
+            style="font-size:.78rem;">
+            ➕ Registrar conversión
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FIN FASE 5 KPIs y desglose                           -->
+    <!-- ══════════════════════════════════════════════════════ -->
+
+    <!-- ── AGREGADO: Gráfico de barras — Ventas por día ── -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">📈 Ingresos por día</div>
+      <div style="position:relative;height:200px;">
+        <canvas id="chart-ventas-dia"></canvas>
+      </div>
+    </div>
+
+    <!-- ── AGREGADO: Fila con dona + barras horizontales ── -->
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-title">💳 Métodos de pago</div>
+        <div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;">
+          <canvas id="chart-metodos"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📦 Top productos (unidades)</div>
+        <div style="position:relative;height:200px;">
+          <canvas id="chart-top-prod"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AGREGADO: Ranking de rentabilidad ══ -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">💎 Productos más rentables</div>
+      <div id="rep-rentabilidad"></div>
+    </div>
+    <!-- ══ FIN AGREGADO ══ -->
+
+    <!-- ── Listas de top (sin cambios) ── -->
+    <div class="grid-2">
+      <div class="card"><div class="card-title">🏆 Top Productos</div><div id="rep-top"></div></div>
+      <div class="card"><div class="card-title">👥 Top Clientes</div><div id="rep-cli"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-calc">
+  <div class="topbar"><div><div class="topbar-title">Presupuestador</div><div class="topbar-sub">Calculá costos y precio de venta para cada trabajo</div></div></div>
+  <div class="content">
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;" id="calc-tabs">
+      <button class="btn btn-primary btn-sm" onclick="setCalcTab('tarjetas',this)">&#x1FAAA; Tarjetas</button>
+      <button class="btn btn-ghost btn-sm" onclick="setCalcTab('talonarios',this)">&#x1F4CB; Talonarios</button>
+      <button class="btn btn-ghost btn-sm" onclick="setCalcTab('volantes',this)">&#x1F4C4; Volantes</button>
+      <button class="btn btn-ghost btn-sm" onclick="setCalcTab('etiquetas',this)">&#x1F3F7;&#xFE0F; Etiquetas</button>
+    </div>
+    <div class="calc-result" style="margin-bottom:18px;">
+      <div class="crb-grid">
+        <div><div class="crb-label">Costo total</div><div class="crb-val" style="color:#f87171" id="c-costo">Gs 0</div><div class="crb-sub" id="c-cu">— /u</div></div>
+        <div><div class="crb-label">Precio s/impuesto</div><div class="crb-val" style="color:white" id="c-precio">Gs 0</div><div class="crb-sub" id="c-pu">— /u</div></div>
+        <div><div class="crb-label">Total c/IVA</div><div class="crb-val" style="color:#4ade80" id="c-total">Gs 0</div><div class="crb-sub" id="c-tu">— /u</div></div>
+        <div><div class="crb-label">Tu ganancia</div><div class="crb-val" style="color:#fbbf24" id="c-gan">Gs 0</div><div class="crb-sub" style="color:#fbbf24" id="c-gpct">—</div></div>
+      </div>
+    </div>
+    <div class="grid-3" id="calc-body"></div>
+  </div>
+</div>
+
+<div class="screen" id="screen-config">
+  <div class="topbar">
+    <div><div class="topbar-title">Configuración</div><div class="topbar-sub">Datos del negocio e impresora</div></div>
+    <div class="topbar-actions"><button class="btn btn-green btn-sm" onclick="saveConfig()">&#x1F4BE; Guardar cambios</button></div>
+  </div>
+  <div class="content" style="max-width:820px;">
+
+    <div class="settings-section">
+      <div class="ss-title">&#x1F4CB; Datos del Negocio</div>
+      <div class="card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div>
+            <div class="field"><label>Nombre del negocio</label><input type="text" id="cfg-nombre" placeholder="Ej: Imprenta Don Pedro"></div>
+            <div class="field"><label>Tipo de negocio</label>
+              <!-- ══ MODIFICADO: lista unificada de 12 tipos de negocio ══ -->
+              <select id="cfg-tipo" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;">
+                <option>Imprenta / Diseño</option>
+                <option>Almacén / Minimarket</option>
+                <option>Gastronomía / Restaurante</option>
+                <option>Panadería / Repostería</option>
+                <option>Ferretería / Materiales</option>
+                <option>Salud / Belleza</option>
+                <option>Taller / Automotor</option>
+                <option>Ropa / Calzado</option>
+                <option>Farmacia / Herboristería</option>
+                <option>Tecnología / Electrónica</option>
+                <option>Educación / Cursos</option>
+                <option>Otro</option>
+              </select>
+              <!-- ══ FIN MODIFICADO ══ -->
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Teléfono / WhatsApp</label><input type="tel" id="cfg-tel" placeholder="0981 000 000"></div>
+              <div class="field"><label>RUC (opcional)</label><input type="text" id="cfg-ruc" placeholder="80000000-0"></div>
+            </div>
+            <div class="field"><label>Dirección</label><input type="text" id="cfg-dir" placeholder="Calle, Nro, Ciudad"></div>
+            <div class="field"><label>Slogan (opcional)</label><input type="text" id="cfg-slogan" placeholder="Tu negocio de confianza"></div>
+          </div>
+          <div>
+            <label style="display:block;font-size:.8rem;font-weight:600;color:var(--ink2);margin-bottom:8px;">Logo del negocio</label>
+            <div class="logo-upload-area" id="logo-drop" onclick="document.getElementById('logo-input').click()" ondragover="event.preventDefault()" ondrop="handleLogoDrop(event)">
+              <div id="logo-preview-wrap">
+                <div style="font-size:2.5rem;margin-bottom:8px;">&#x1F5BC;&#xFE0F;</div>
+                <div style="font-weight:600;font-size:.85rem;color:var(--ink2);">Subir logo</div>
+                <div style="font-size:.75rem;color:var(--ink3);margin-top:4px;">Arrastrá o clic — PNG, JPG, SVG</div>
+              </div>
+              <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+            </div>
+            <div class="field" style="margin-top:12px;"><label>Mensaje pie de ticket</label>
+              <textarea id="cfg-msg" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;min-height:60px;resize:vertical;" placeholder="¡Gracias por su compra! Vuelva pronto &#x1F60A;"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FASE 1 MULTI-MONEDA: Sección de Monedas en Config     -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="settings-section">
+      <div class="ss-title">💱 Monedas</div>
+      <div class="card">
+        <p style="font-size:.83rem;color:var(--ink3);margin-bottom:16px;line-height:1.6;">
+          Elegí la moneda principal de tu negocio y habilitá las monedas secundarias que aceptás.
+        </p>
+
+        <!-- Moneda principal -->
+        <div class="field" style="max-width:320px;">
+          <label>Moneda principal</label>
+          <select id="cfg-moneda-principal"
+            style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;"
+            onchange="onMonedaPrincipalChange(this.value)">
+          </select>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Monedas secundarias -->
+        <div style="font-size:.8rem;font-weight:600;color:var(--ink2);margin-bottom:12px;">
+          Monedas secundarias habilitadas
+        </div>
+        <div id="cfg-monedas-secundarias" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <!-- Se renderizan dinámicamente por renderMonedaCheckboxes() -->
+        </div>
+
+        <!-- Expandir: más monedas -->
+        <div id="cfg-monedas-mas-wrap" style="margin-bottom:16px;">
+          <button class="btn btn-ghost btn-sm" onclick="toggleMasMonedas()"
+            id="btn-mas-monedas"
+            style="font-size:.78rem;">
+            ➕ Más monedas de América
+          </button>
+          <div id="cfg-monedas-mas" style="display:none;margin-top:12px;">
+            <div style="font-size:.75rem;color:var(--ink3);margin-bottom:10px;">
+              Otras monedas disponibles — marcá las que necesitás
+            </div>
+            <div id="cfg-monedas-extra" style="display:flex;flex-wrap:wrap;gap:10px;">
+              <!-- Se renderizan dinámicamente -->
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Tipos de cambio actuales -->
+        <div style="font-size:.8rem;font-weight:600;color:var(--ink2);margin-bottom:4px;">
+          Tipos de cambio actuales
+          <span style="font-weight:400;color:var(--ink3);font-size:.75rem;margin-left:6px;">
+            (valor de 1 unidad en moneda principal)
+          </span>
+        </div>
+        <div style="font-size:.75rem;color:var(--ink3);margin-bottom:12px;">
+          Estos valores también se pueden editar desde el Punto de Venta.
+        </div>
+        <div id="cfg-tipos-cambio-grid"
+          style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+          <!-- Se renderizan dinámicamente por renderTiposCambioConfig() -->
+        </div>
+      </div>
+    </div>
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FIN FASE 1 MULTI-MONEDA                               -->
+    <!-- ══════════════════════════════════════════════════════ -->
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- NUEVO: Sección Zona Horaria                           -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="settings-section">
+      <div class="ss-title">🕐 Zona Horaria</div>
+      <div class="card">
+        <p style="font-size:.83rem;color:var(--ink3);margin-bottom:16px;line-height:1.6;">
+          Elegí la zona horaria de tu negocio. Se aplicará en los historiales de movimientos, turnos y fechas de ventas.
+        </p>
+        <div class="field" style="max-width:400px;">
+          <label>Zona horaria</label>
+          <select id="cfg-zona-horaria"
+            style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;">
+            <optgroup label="🇵🇾 Paraguay">
+              <option value="America/Asuncion">Paraguay (America/Asuncion) — UTC-4/-3</option>
+            </optgroup>
+            <optgroup label="🌎 América del Sur">
+              <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires) — UTC-3</option>
+              <option value="America/Sao_Paulo">Brasil (São Paulo) — UTC-3/-2</option>
+              <option value="America/Santiago">Chile (Santiago) — UTC-4/-3</option>
+              <option value="America/Lima">Perú (Lima) — UTC-5</option>
+              <option value="America/Bogota">Colombia (Bogotá) — UTC-5</option>
+              <option value="America/Caracas">Venezuela (Caracas) — UTC-4</option>
+              <option value="America/La_Paz">Bolivia (La Paz) — UTC-4</option>
+              <option value="America/Montevideo">Uruguay (Montevideo) — UTC-3/-2</option>
+              <option value="America/Guayaquil">Ecuador (Guayaquil) — UTC-5</option>
+            </optgroup>
+            <optgroup label="🌎 América Central y México">
+              <option value="America/Mexico_City">México (Ciudad de México) — UTC-6/-5</option>
+              <option value="America/Guatemala">Guatemala — UTC-6</option>
+              <option value="America/Tegucigalpa">Honduras — UTC-6</option>
+              <option value="America/Managua">Nicaragua — UTC-6</option>
+              <option value="America/Costa_Rica">Costa Rica — UTC-6</option>
+              <option value="America/Panama">Panamá — UTC-5</option>
+            </optgroup>
+            <optgroup label="🌎 Caribe y EEUU/Canadá">
+              <option value="America/New_York">EE.UU. Este (New York) — UTC-5/-4</option>
+              <option value="America/Chicago">EE.UU. Central (Chicago) — UTC-6/-5</option>
+              <option value="America/Denver">EE.UU. Montaña (Denver) — UTC-7/-6</option>
+              <option value="America/Los_Angeles">EE.UU. Pacífico (Los Angeles) — UTC-8/-7</option>
+              <option value="America/Toronto">Canadá (Toronto) — UTC-5/-4</option>
+              <option value="America/Santo_Domingo">República Dominicana — UTC-4</option>
+              <option value="America/Havana">Cuba (La Habana) — UTC-5/-4</option>
+            </optgroup>
+          </select>
+        </div>
+        <div style="font-size:.75rem;color:var(--ink3);margin-top:8px;">
+          💡 Guardá los cambios para que el horario se aplique en toda la app.
+        </div>
+      </div>
+    </div>
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FIN NUEVO: Sección Zona Horaria                       -->
+    <!-- ══════════════════════════════════════════════════════ -->
+
+    <div class="settings-section">
+      <div class="ss-title">&#x1F5A8;&#xFE0F; Configuración de Impresora</div>
+      <div class="card">
+        <p style="font-size:.83rem;color:var(--ink3);margin-bottom:16px;line-height:1.6;">Seleccioná el tipo de impresora para adaptar el ticket automáticamente.</p>
+        <!-- ══ MODIFICADO: se eliminaron las descripciones, solo título con tamaño de papel ══ -->
+        <div id="printer-options">
+          <div class="printer-option selected" onclick="selectPrinter('termica',this)" data-p="termica">
+            <span class="po-icon">&#x1F9FE;</span><div class="po-body"><div class="po-name">Impresora Térmica (80mm)</div></div><div class="po-check">&#x2713;</div>
+          </div>
+          <div class="printer-option" onclick="selectPrinter('termica58',this)" data-p="termica58">
+            <span class="po-icon">&#x1F9FE;</span><div class="po-body"><div class="po-name">Impresora Térmica (58mm)</div></div><div class="po-check"></div>
+          </div>
+          <div class="printer-option" onclick="selectPrinter('multifuncion',this)" data-p="multifuncion">
+            <span class="po-icon">&#x1F5A8;&#xFE0F;</span><div class="po-body"><div class="po-name">Impresora Multifunción / Inkjet (A5)</div></div><div class="po-check"></div>
+          </div>
+          <div class="printer-option" onclick="selectPrinter('laser',this)" data-p="laser">
+            <span class="po-icon">&#x1F4E0;</span><div class="po-body"><div class="po-name">Impresora Láser (A5)</div></div><div class="po-check"></div>
+          </div>
+        </div>
+        <!-- ══ FIN MODIFICADO ══ -->
+        <hr class="divider">
+        <div class="field-row">
+          <div class="field"><label>Copias por venta</label>
+            <select id="cfg-copias" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;">
+              <option value="1">1 copia</option><option value="2">2 copias</option><option value="3">3 copias</option>
+            </select>
+          </div>
+          <div class="field"><label>Imprimir al cobrar</label>
+            <select id="cfg-autoprint" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;">
+              <option value="si">Sí, siempre</option><option value="preguntar">Preguntar cada vez</option><option value="no">No, imprimir manualmente</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MOVIDO: print-overlay fuera de screens ── -->
+<div class="modal-overlay" id="print-overlay" onclick="closeOverlay('print-overlay',event)">
+  <div class="modal" style="max-width:380px;text-align:center;">
+    <div class="modal-header" style="justify-content:center;flex-direction:column;gap:6px;">
+      <div style="font-size:2.5rem;">&#x2705;</div>
+      <div class="modal-title">¡Venta registrada!</div>
+    </div>
+    <div style="font-size:.88rem;color:var(--ink3);margin-bottom:20px;" id="print-resumen"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-primary" style="width:100%" onclick="doPrint()">&#x1F5A8;&#xFE0F; Imprimir ticket</button>
+      <button class="btn btn-ghost" style="width:100%" onclick="closeModal('print-overlay')">Cerrar sin imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- ETAPA 4 — PANTALLA MI PLAN ▼▼▼                        -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-plan">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">⭐ Mi Plan</div>
+      <div class="topbar-sub">Gestioná tu suscripción</div>
+    </div>
+  </div>
+  <div class="content" id="plan-content">
+    <div class="empty-state" style="padding:60px 0;">
+      <div class="empty-icon">⭐</div>
+      <div class="empty-text">Cargando información del plan…</div>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN PANTALLA MI PLAN ▲▲▲                              -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FASE 5: Modal registrar conversión de moneda          -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FASE 5 → BALANCE: Modal conversión con moneda destino  -->
+<!-- Soporta: secundaria→principal Y secundaria→secundaria  -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL VER CONVERSIONES — NUEVO                        -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="ver-conversiones-overlay" onclick="closeOverlay('ver-conversiones-overlay',event)">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">📊 Historial de conversiones</div>
+      <button class="modal-close" onclick="closeModal('ver-conversiones-overlay')">&#x2715;</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:.8rem;color:var(--ink3);">Últimos 30 días</div>
+      <div id="ver-conv-total" style="font-weight:800;font-size:1rem;"></div>
+    </div>
+    <div id="ver-conv-lista" style="overflow-y:auto;max-height:420px;font-size:.82rem;"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('ver-conversiones-overlay')">Cerrar</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('ver-conversiones-overlay');openRegistrarConversion()">➕ Registrar nueva</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN MODAL VER CONVERSIONES                            -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<div class="modal-overlay" id="conversion-overlay" onclick="closeOverlay('conversion-overlay',event)">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">💱 Registrar Conversión</div>
+      <button class="modal-close" onclick="closeModal('conversion-overlay')">&#x2715;</button>
+    </div>
+    <p style="font-size:.83rem;color:var(--ink3);margin-bottom:14px;line-height:1.6;">
+      Registrá cualquier cambio de moneda — de extranjera a
+      <span id="conv-mp-nombre">Guaraní</span>, o entre dos monedas extranjeras.
+    </p>
+
+    <!-- Fila origen → destino -->
+    <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:12px;">
+      <div class="field" style="flex:1;margin-bottom:0;">
+        <label>Moneda origen</label>
+        <select id="conv-moneda"
+          style="width:100%;padding:10px 13px;border:1.5px solid var(--border);
+            border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;
+            background:var(--bg);outline:none;"
+          onchange="onConvMonedaChange()">
+        </select>
+      </div>
+      <div style="font-size:1.4rem;padding-bottom:10px;flex-shrink:0;">→</div>
+      <div class="field" style="flex:1;margin-bottom:0;">
+        <label>Moneda destino</label>
+        <select id="conv-moneda-destino"
+          style="width:100%;padding:10px 13px;border:1.5px solid var(--border);
+            border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;
+            background:var(--bg);outline:none;"
+          onchange="onConvMonedaChange()">
+        </select>
+      </div>
+    </div>
+
+    <!-- Montos -->
+    <div class="field-row">
+      <div class="field">
+        <label id="conv-label-origen">Monto a convertir</label>
+        <input type="number" id="conv-monto-origen" min="0" step="any"
+          placeholder="0" oninput="calcConversionPreview()">
+      </div>
+      <div class="field">
+        <label id="conv-label-destino">Monto recibido (real)</label>
+        <input type="number" id="conv-monto-gs" min="0" step="any"
+          placeholder="Lo que te dieron" oninput="calcConversionPreview()">
+      </div>
+    </div>
+
+    <!-- TCs del sistema (readonly, informativos) -->
+    <div id="conv-tc-wrap"
+      style="background:var(--surface2);border-radius:var(--r-sm);
+        padding:10px 14px;margin-bottom:12px;font-size:.78rem;
+        display:flex;gap:16px;flex-wrap:wrap;">
+      <div>
+        <span style="color:var(--ink3);">TC sistema origen:</span>
+        <strong id="conv-tc-origen-val">—</strong>
+      </div>
+      <div id="conv-tc-destino-wrap">
+        <span style="color:var(--ink3);">TC sistema destino:</span>
+        <strong id="conv-tc-destino-val">—</strong>
+      </div>
+    </div>
+
+    <!-- Preview de diferencia -->
+    <div id="conv-preview" style="display:none;
+      border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;
+      font-size:.85rem;font-weight:700;">
+    </div>
+
+    <div class="field">
+      <label>📝 Nota (opcional)</label>
+      <input type="text" id="conv-nota"
+        placeholder="Ej: Casa de cambio del centro, lunes 14/05">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="guardarConversion()">
+        ✅ Registrar conversión
+      </button>
+      <button class="btn btn-ghost" onclick="closeModal('conversion-overlay')"
+        style="width:80px;">Cancelar</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN FASE 5 → BALANCE Modal conversión                 -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+</main>
+</div>
+
+<div class="modal-overlay" id="product-overlay" onclick="closeOverlay('product-overlay',event)">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="prod-modal-title">Nuevo Producto</div><button class="modal-close" onclick="closeModal('product-overlay')">&#x2715;</button></div>
+    <div class="segment" style="margin-bottom:16px;">
+      <button class="seg-btn active" id="pseg-prod" onclick="setProdType('producto',this)">&#x1F4E6; Producto</button>
+      <button class="seg-btn" id="pseg-serv" onclick="setProdType('servicio',this)">&#x1F6E0;&#xFE0F; Servicio</button>
+    </div>
+    <!-- ══ AGREGADO: campo nombre ══ -->
+    <div class="field"><label>Nombre</label><input type="text" id="prod-name" placeholder="Ej: Tarjetas Full Color"></div>
+    <!-- ══ AGREGADO: campo código interno ══ -->
+    <div class="field">
+      <label>🏷️ Código interno <span style="font-weight:400;color:var(--ink3);font-size:.78rem;">(opcional — para búsqueda rápida en POS)</span></label>
+      <input type="text" id="prod-codigo" placeholder="Ej: TORN-M6, 0042, REF-001" style="font-family:monospace;">
+    </div>
+    <!-- ══ AGREGADO: campo imagen del producto ══ -->
+    <div class="field">
+      <label>🖼️ Imagen del producto <span style="font-weight:400;color:var(--ink3);font-size:.78rem;">(opcional — JPG/PNG, se comprime automáticamente)</span></label>
+      <div id="prod-img-wrap" onclick="document.getElementById('prod-img-input').click()"
+        style="cursor:pointer;border:2px dashed var(--border);border-radius:var(--r-sm);
+               min-height:90px;display:flex;align-items:center;justify-content:center;
+               flex-direction:column;gap:6px;transition:border .15s;overflow:hidden;
+               background:var(--bg);position:relative;">
+        <div id="prod-img-placeholder" style="text-align:center;color:var(--ink3);font-size:.8rem;padding:12px;">
+          <div style="font-size:1.6rem;margin-bottom:4px;">📷</div>
+          Tocá para agregar imagen
+        </div>
+      </div>
+      <input type="file" id="prod-img-input" accept="image/*" style="display:none"
+             onchange="handleProdImage(this)">
+      <input type="hidden" id="prod-imagen-url">
+    </div>
+    <!-- ══ FIN AGREGADO imagen ══ -->
+    <!-- ══ MODIFICADO v[fecha]: eliminado campo Emoji/Ícono ══ -->
+    <div class="field">
+      <label>Categoría</label>
+      <input type="text" id="prod-cat" placeholder="Ej: Impresión">
+    </div>
+    <!-- ══ FASE 4: campo precio con selector de moneda + costo ══ -->
+    <div class="field-row">
+      <div class="field">
+        <label>Precio de venta</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="prod-moneda-precio"
+            style="padding:9px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+              font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;
+              font-weight:700;flex-shrink:0;max-width:90px;"
+            onchange="onProdMonedaChange(this.value)">
+            <!-- Se rellena dinámicamente -->
+          </select>
+          <input type="number" id="prod-price" placeholder="0"
+            style="flex:1;"
+            oninput="calcRentabilidadModal()">
+        </div>
+        <!-- precio_fijo eliminado — todos los precios se convierten al TC del día -->
+      </div>
+      <div class="field"><label>💰 Costo (Gs)</label><input type="number" id="prod-costo" placeholder="0 (opcional)" oninput="calcRentabilidadModal()"></div>
+    </div>
+    <!-- ══ FIN FASE 4 ══ -->
+    <!-- ══ AGREGADO: pill de rentabilidad en tiempo real ══ -->
+    <div id="prod-rentabilidad-preview" style="display:none;margin-bottom:8px;padding:10px 14px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #bbf7d0;border-radius:var(--r-sm);font-size:.82rem;color:#166534;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+      <span>📈 Ganancia: <strong id="prp-gan">—</strong></span>
+      <span>📊 Margen: <strong id="prp-pct">—</strong></span>
+      <span id="prp-badge" style="font-size:.75rem;padding:2px 8px;border-radius:100px;background:#166534;color:white;font-weight:700;"></span>
+    </div>
+    <!-- ══ FIN AGREGADO ══ -->
+    <div id="prod-stock-f" class="field"><label>Stock inicial</label><input type="number" id="prod-stock" placeholder="0"></div>
+    <input type="hidden" id="prod-edit-id">
+    <!-- ══════════════════════════════════════════════════
+         AGREGADO: mensaje de error anti-duplicados
+         Se muestra solo cuando hay conflicto de nombre/código
+         ══════════════════════════════════════════════════ -->
+    <div id="prod-duplicado-error" style="
+      display:none;
+      background:#FEF2F2;
+      border:1.5px solid #FCA5A5;
+      border-radius:10px;
+      padding:10px 14px;
+      margin-bottom:12px;
+      font-size:.84rem;
+      font-weight:600;
+      color:#B91C1C;
+      line-height:1.5;
+    ">
+      <span id="prod-duplicado-msg"></span>
+    </div>
+    <!-- ══ FIN AGREGADO ══ -->
+    <div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1" onclick="saveProduct()">Guardar</button><button class="btn btn-ghost" onclick="closeModal('product-overlay')" style="width:80px;">Cancelar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="task-overlay" onclick="closeOverlay('task-overlay',event)">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nueva Tarea</div><button class="modal-close" onclick="closeModal('task-overlay')">&#x2715;</button></div>
+    <div class="field"><label>Nombre / Título</label><input type="text" id="task-name" placeholder="Ej: Imprimir 500 volantes para Don Pedro"></div>
+    <div class="field"><label>Descripción</label><textarea id="task-desc" placeholder="Detalles del trabajo…"></textarea></div>
+    <div class="field-row">
+      <div class="field"><label>Fecha de entrega</label><input type="date" id="task-date"></div>
+      <div class="field"><label>Monto a cobrar (Gs)</label><input type="number" id="task-amount" placeholder="0"></div>
+    </div>
+    <input type="hidden" id="task-edit-id">
+    <div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1" onclick="saveTask()">Guardar tarea</button><button class="btn btn-ghost" onclick="closeModal('task-overlay')" style="width:80px;">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL APERTURA DE CAJA  ▼▼▼ NUEVO ▼▼▼               -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="caja-apertura-overlay">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🔓 Apertura de Caja</div>
+    </div>
+    <p style="font-size:.85rem;color:var(--ink3);margin-bottom:18px;line-height:1.6;">
+      Para registrar ventas necesitás abrir la caja primero.<br>
+      Contá el efectivo que tenés disponible hoy.
+    </p>
+    <div class="field">
+      <label>💵 Monto inicial en efectivo (Gs)</label>
+      <input type="number" id="caja-monto-inicial" placeholder="Ej: 500000" min="0">
+    </div>
+    <div class="field">
+      <label>📝 Notas (opcional)</label>
+      <input type="text" id="caja-notas-apertura" placeholder="Ej: Turno mañana - María">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-green" style="flex:1;font-size:.92rem;padding:12px;" onclick="confirmarAperturaCaja()">
+        ✅ Abrir caja del día
+      </button>
+    </div>
+    <div style="text-align:center;margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" onclick="saltarAperturaCaja()" style="font-size:.75rem;color:var(--ink3);">
+        Continuar sin abrir caja (solo lectura)
+      </button>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN MODAL APERTURA DE CAJA  ▲▲▲ NUEVO ▲▲▲           -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<div class="modal-overlay" id="gasto-overlay" onclick="closeOverlay('gasto-overlay',event)">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Registrar Gasto</div><button class="modal-close" onclick="closeModal('gasto-overlay')">&#x2715;</button></div>
+    <div class="field"><label>Descripción</label><input type="text" id="gasto-desc" placeholder="Ej: Resma de papel A4"></div>
+    <div class="field-row">
+      <div class="field"><label>Categoría</label>
+        <select id="gasto-cat" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;">
+          <option>Insumos</option><option>Servicios</option><option>Alquiler</option><option>Sueldos</option><option>Transporte</option><option>Otros</option>
+        </select>
+      </div>
+      <div class="field"><label>Monto (Gs)</label><input type="number" id="gasto-amount" placeholder="0"></div>
+    </div>
+    <div style="display:flex;gap:8px;"><button class="btn btn-danger" style="flex:1" onclick="saveGasto()">Registrar gasto</button><button class="btn btn-ghost" onclick="closeModal('gasto-overlay')" style="width:80px;">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL EDITAR GASTO  ▼▼▼ NUEVO ▼▼▼                    -->
+<!-- Líneas AGREGADAS                                        -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="gasto-edit-overlay" onclick="closeOverlay('gasto-edit-overlay',event)">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Editar Gasto</div>
+      <button class="modal-close" onclick="closeModal('gasto-edit-overlay')">&#x2715;</button>
+    </div>
+    <div class="field">
+      <label>Descripción</label>
+      <input type="text" id="gasto-edit-desc" placeholder="Ej: Resma de papel A4">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Categoría</label>
+        <select id="gasto-edit-cat" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;">
+          <option>Insumos</option><option>Servicios</option><option>Alquiler</option><option>Sueldos</option><option>Transporte</option><option>Otros</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Monto (Gs)</label>
+        <input type="number" id="gasto-edit-amount" placeholder="0">
+      </div>
+    </div>
+    <input type="hidden" id="gasto-edit-id">
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEditGasto()">💾 Guardar cambios</button>
+      <button class="btn btn-ghost" onclick="closeModal('gasto-edit-overlay')" style="width:90px;">Cancelar</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN MODAL EDITAR GASTO  ▲▲▲ NUEVO ▲▲▲               -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL DETALLE VENTA  ▼▼▼ NUEVO ▼▼▼                   -->
+<!-- Líneas AGREGADAS                                        -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="venta-detail-overlay" onclick="closeOverlay('venta-detail-overlay',event)">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <div class="modal-title">🛒 Detalle de Venta</div>
+      <button class="modal-close" onclick="closeModal('venta-detail-overlay')">&#x2715;</button>
+    </div>
+    <div id="venta-detail-body" style="margin-bottom:20px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="reimprVentaDetail()" style="flex:1;">🖨️ Reimprimir ticket</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmarDeleteVenta()" style="flex:1;">🗑 Eliminar venta</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('venta-detail-overlay')" style="width:90px;">Cerrar</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN MODAL DETALLE VENTA  ▲▲▲ NUEVO ▲▲▲               -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL DETALLE CUENTA CORRIENTE ▼▼▼ AGREGADO ▼▼▼       -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="cc-detail-overlay" onclick="closeOverlay('cc-detail-overlay',event)">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">💳 Cuenta Corriente</div>
+      <button class="modal-close" onclick="closeModal('cc-detail-overlay')">✕</button>
+    </div>
+
+    <!-- Info del cliente y deuda -->
+    <div id="cc-detail-info" style="background:var(--surface2);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:16px;"></div>
+
+    <!-- Historial de pagos -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:8px;">Historial de pagos</div>
+      <div id="cc-pagos-list" style="max-height:180px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Registrar nuevo pago -->
+    <div id="cc-pago-form" style="border-top:1.5px solid var(--border);padding-top:16px;">
+      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:10px;">Registrar pago</div>
+      <div class="field-row">
+        <div class="field" style="flex:1.5">
+          <label>Monto a pagar (Gs)</label>
+          <input type="number" id="cc-pago-monto" placeholder="Ej: 50000" min="1">
+        </div>
+        <div class="field" style="flex:1">
+          <label>Método</label>
+          <select id="cc-pago-metodo" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.88rem;background:var(--bg);">
+            <option>Efectivo</option>
+            <option>Transferencia</option>
+            <option>Tarjeta</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Nota (opcional)</label>
+        <input type="text" id="cc-pago-nota" placeholder="Ej: Abono parcial de mayo">
+      </div>
+      <!-- Botones rápidos para pagar total o la mitad -->
+      <div style="display:flex;gap:6px;margin-bottom:12px;" id="cc-pago-btns-rapidos"></div>
+      <!-- ── MODIFICADO: se agregó botón Cancelar deuda ── -->
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-green" style="flex:1;font-size:.9rem;" onclick="registrarPagoCC()">💰 Registrar pago</button>
+        <button class="btn btn-ghost" onclick="closeModal('cc-detail-overlay')" style="width:90px;">Cerrar</button>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-ghost btn-sm" style="width:100%;color:var(--red);border-color:var(--red);opacity:.75;font-size:.8rem;" onclick="cancelarDeudaCC()">
+          🚫 Cancelar / condonar deuda
+        </button>
+      </div>
+      <!-- ── FIN MODIFICADO ── -->
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN MODAL CUENTA CORRIENTE ▲▲▲ AGREGADO ▲▲▲           -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL NUEVO/EDITAR CLIENTE  (sin cambios internos)    -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="client-overlay" onclick="closeOverlay('client-overlay',event)">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nuevo Cliente</div><button class="modal-close" onclick="closeModal('client-overlay')">&#x2715;</button></div>
+    <div class="field"><label>Nombre</label><input type="text" id="client-name" placeholder="Nombre completo"></div>
+    <div class="field-row">
+      <div class="field"><label>Teléfono</label><input type="tel" id="client-phone" placeholder="0981 000 000"></div>
+      <div class="field"><label>RUC / CI</label><input type="text" id="client-doc" placeholder=""></div>
+    </div>
+    <!-- ══ MODIFICADO: dirección antes que notas, sin texto "(opcional)" ══ -->
+    <div class="field"><label>Dirección</label><input type="text" id="client-direccion" placeholder="Ej: Calle San Martín 123"></div>
+    <div class="field"><label>Notas</label><textarea id="client-notes" placeholder="Preferencias, detalles…"></textarea></div>
+    <!-- ══ FIN MODIFICADO ══ -->
+    <input type="hidden" id="client-edit-id">
+    <div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1" onclick="saveClient()">Guardar</button><button class="btn btn-ghost" onclick="closeModal('client-overlay')" style="width:80px;">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL FICHA CLIENTE  ▼▼▼ NUEVO COMPLETO ▼▼▼          -->
+<!-- LÍNEAS AGREGADAS                                       -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="ficha-cliente-overlay" onclick="closeOverlay('ficha-cliente-overlay',event)">
+  <div class="modal" style="max-width:580px;padding:0;overflow:hidden;max-height:92vh;display:flex;flex-direction:column;">
+
+    <!-- Cabecera con avatar y nombre -->
+    <div id="ficha-header" style="
+      padding:24px 24px 18px;
+      background:linear-gradient(135deg,var(--purple-l),var(--surface));
+      border-bottom:1.5px solid var(--border);
+      display:flex;align-items:center;gap:16px;flex-shrink:0;">
+      <div id="ficha-avatar" style="
+        width:56px;height:56px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-weight:800;font-size:1.4rem;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="ficha-nombre" style="font-size:1.2rem;font-weight:800;color:var(--ink1);"></div>
+        <div id="ficha-sub" style="font-size:.8rem;color:var(--ink3);margin-top:2px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <!-- ── LÍNEAS AGREGADAS: botones editar y cerrar en el header ── -->
+        <button class="btn btn-ghost btn-sm" id="ficha-btn-editar"
+          style="padding:6px 14px;font-size:.8rem;">✏️ Editar</button>
+        <button class="modal-close" onclick="closeModal('ficha-cliente-overlay')" style="position:static;">✕</button>
+        <!-- ── FIN LÍNEAS AGREGADAS ── -->
+      </div>
+    </div>
+
+    <!-- Cuerpo scrolleable -->
+    <div style="overflow-y:auto;flex:1;padding:20px 24px;">
+
+      <!-- ── LÍNEAS AGREGADAS: grid de stats del cliente ── -->
+      <div class="grid-3" style="margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="sc-label">Total comprado</div>
+          <div class="sc-val" id="ficha-total-comprado" style="color:var(--green);font-size:1.1rem;">Gs 0</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-label">Compras</div>
+          <div class="sc-val" id="ficha-cant-compras">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-label">Deuda en fiado</div>
+          <div class="sc-val" id="ficha-deuda" style="color:var(--red);">Gs 0</div>
+        </div>
+      </div>
+      <!-- ── FIN LÍNEAS AGREGADAS ── -->
+
+      <!-- ── LÍNEAS AGREGADAS: sección de fiados pendientes ── -->
+      <div id="ficha-fiados-section" style="display:none;margin-bottom:20px;">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+          letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;">
+          💳 Fiados pendientes
+        </div>
+        <div id="ficha-fiados-list"></div>
+      </div>
+      <!-- ── FIN LÍNEAS AGREGADAS ── -->
+
+      <!-- ── LÍNEAS AGREGADAS: historial de ventas del cliente ── -->
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+          letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;">
+          🧾 Historial de ventas
+        </div>
+        <div id="ficha-ventas-list"></div>
+
+      </div><!-- cierre div historial ventas -->
+    </div><!-- cierre div cuerpo scrolleable -->
+  </div><!-- cierre div.modal -->
+</div><!-- cierre ficha-cliente-overlay -->
+
+<div class="side-overlay" id="side-overlay" onclick="closeSidePanel()"></div>
+<div class="side-panel" id="side-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1.5px solid var(--border);">
+    <span style="font-size:.72rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;">Detalle de tarea</span>
+    <button class="modal-close" onclick="closeSidePanel()">&#x2715;</button>
+  </div>
+  <div id="side-content"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- ETAPA 4 — PANTALLA MI PLAN ▼▼▼                        -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- ETAPA 4 — MÓDULO C: MODAL UPGRADE / PAGO MANUAL ▼▼▼   -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="upgrade-overlay" onclick="closeOverlay('upgrade-overlay',event)">
+  <div class="modal" style="max-width:460px;">
+
+    <div class="modal-header">
+      <div class="modal-title">⬆️ Upgrade a Plan Pro</div>
+      <button class="modal-close" onclick="closeModal('upgrade-overlay')">✕</button>
+    </div>
+
+    <!-- Precio destacado -->
+    <div style="background:var(--surface2);border-radius:var(--r-sm);padding:16px;
+      text-align:center;margin-bottom:20px;">
+      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.1em;color:var(--ink3);margin-bottom:4px;">Plan Pro</div>
+      <div style="font-size:2rem;font-weight:800;letter-spacing:-.04em;">
+        Gs 150.000
+        <span style="font-size:.85rem;font-weight:500;color:var(--ink3);">/mes</span>
+      </div>
+      <div style="font-size:.78rem;color:var(--ink3);margin-top:4px;">
+        Productos ilimitados · Clientes ilimitados · Reportes avanzados · Catálogo · Fiado
+      </div>
+    </div>
+
+    <!-- Instrucciones de pago -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;">
+        📋 Cómo pagar
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:.85rem;">
+          <span style="background:var(--ink);color:white;border-radius:50%;width:22px;height:22px;
+            display:flex;align-items:center;justify-content:center;font-size:.7rem;
+            font-weight:800;flex-shrink:0;margin-top:1px;">1</span>
+          <span>Realizá la transferencia o depósito a la cuenta indicada abajo.</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:.85rem;">
+          <span style="background:var(--ink);color:white;border-radius:50%;width:22px;height:22px;
+            display:flex;align-items:center;justify-content:center;font-size:.7rem;
+            font-weight:800;flex-shrink:0;margin-top:1px;">2</span>
+          <span>Completá el formulario con tu nombre y número de comprobante.</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:.85rem;">
+          <span style="background:var(--ink);color:white;border-radius:50%;width:22px;height:22px;
+            display:flex;align-items:center;justify-content:center;font-size:.7rem;
+            font-weight:800;flex-shrink:0;margin-top:1px;">3</span>
+          <span>Activamos tu Plan Pro en menos de 24 horas hábiles.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Datos bancarios -->
+    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--r-sm);
+      padding:14px 16px;margin-bottom:18px;">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.1em;color:var(--green);margin-bottom:8px;">
+        🏦 Datos para el pago
+      </div>
+      <!-- ══ EDITÁ ESTOS DATOS CON TU INFORMACIÓN REAL ══ -->
+      <div id="datos-bancarios" style="font-size:.85rem;line-height:1.9;color:#166534;">
+        <div><strong>Banco:</strong> Ueno Bank</div>
+        <div><strong>Titular:</strong> Sergio Nicolas Vazquez</div>
+        <div><strong>Número:</strong> 619372269</div>
+        <div><strong>RUC/CI:</strong> 7539793-5</div>
+      </div>
+      <!-- ══ FIN DATOS BANCARIOS ══ -->
+    </div>
+
+    <!-- Formulario de confirmación -->
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+      letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;">
+      ✅ Confirmar pago
+    </div>
+
+    <div class="field">
+      <label>Tu nombre completo</label>
+      <input type="text" id="upg-nombre" placeholder="Ej: María García">
+    </div>
+    <div class="field">
+      <label>Número de comprobante</label>
+      <input type="text" id="upg-comprobante" placeholder="Ej: 123456789">
+    </div>
+    <div class="field">
+      <label>Teléfono de contacto <span style="color:var(--ink3);font-weight:400;">(opcional)</span></label>
+      <input type="tel" id="upg-tel" placeholder="0981 000 000">
+    </div>
+
+    <div id="upg-error" style="display:none;background:var(--red-l);color:var(--red);
+      border-radius:var(--r-sm);padding:10px 12px;font-size:.83rem;
+      font-weight:600;margin-bottom:12px;"></div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('upgrade-overlay')">
+        Cancelar
+      </button>
+      <button class="btn btn-primary" style="flex:2;" id="upg-btn" onclick="enviarSolicitudUpgrade()">
+        📨 Enviar solicitud
+      </button>
+    </div>
+
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN MÓDULO C ▲▲▲                                      -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL AJUSTE MANUAL DE STOCK — BLOQUE NUEVO COMPLETO  -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="stock-ajuste-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this)closeModal('stock-ajuste-overlay')">
+  <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;width:calc(100% - 32px);max-width:400px;padding:18px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;">
+    <div class="modal-header" style="margin-bottom:12px;">
+      <div class="modal-title">📦 Ajustar Stock</div>
+      <button class="modal-close" onclick="closeModal('stock-ajuste-overlay')">✕</button>
+    </div>
+    <div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:var(--ink1);" id="stock-modal-nombre">Producto</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:12px;">
+      <span style="font-size:.8rem;color:var(--ink3);font-weight:600;">Stock actual</span>
+      <span style="font-weight:800;font-size:1.3rem;" id="stock-actual-display">0</span>
+    </div>
+    <div class="field">
+      <label>Nuevo stock</label>
+      <!-- ══════════════════════════════════════════════════
+         MODIFICADO: se agrega event.stopPropagation() a
+         todos los botones para evitar que el clic se filtre
+         al overlay y cierre el modal antes de guardar.
+         ── LÍNEAS MODIFICADAS: todos los onclick de botones ──
+         ══════════════════════════════════════════════════ -->
+    <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn btn-ghost" style="width:42px;height:42px;padding:0;font-size:1.3rem;flex-shrink:0;border-radius:var(--r-sm);" onclick="event.stopPropagation();stepStock(-1)">−</button>
+        <input type="number" id="stock-nuevo-val" min="0" style="flex:1;text-align:center;font-size:1.2rem;font-weight:800;padding:10px;" placeholder="0">
+        <button class="btn btn-ghost" style="width:42px;height:42px;padding:0;font-size:1.3rem;flex-shrink:0;border-radius:var(--r-sm);" onclick="event.stopPropagation();stepStock(1)">+</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();stepStock(5)">+5</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();stepStock(10)">+10</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();stepStock(25)">+25</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();stepStock(50)">+50</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();stepStock(100)">+100</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Motivo del ajuste <span style="color:var(--ink3);font-weight:400;">(opcional)</span></label>
+      <input type="text" id="stock-motivo" placeholder="Ej: Compra de mercadería, conteo físico…">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="event.stopPropagation();closeModal('stock-ajuste-overlay')">Cancelar</button>
+      <button class="btn btn-green" style="flex:2;" onclick="event.stopPropagation();saveStockAjuste()">💾 Guardar stock</button>
+    </div>
+    <!-- ══ FIN MODIFICADO ══ -->
+    <!-- ── MODIFICADO: historial movido a la pestaña Inventario > Historial ── -->
+  </div>
+</div>
+
+<script src="nomi-app.js"></script>
+</body>
+</html>

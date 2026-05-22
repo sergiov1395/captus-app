@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nomi — Crear cuenta</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<script src="supabase.min.js"></script>
+
+<style>
+/* ══════════════════════════════════════════════════════
+   ETAPA 4 — MÓDULO A: register.html
+   Estilos consistentes con el sistema de diseño de Nomi
+   ══════════════════════════════════════════════════════ */
+:root {
+  --bg:#F4F3EE; --surface:#FFFFFF; --surface2:#EDECE6;
+  --ink:#18181B; --ink2:#52525B; --ink3:#A1A1AA;
+  --green:#16A34A; --green-l:#DCFCE7;
+  --red:#DC2626;   --red-l:#FEE2E2;
+  --border:#E4E4E7;
+  --font:'Plus Jakarta Sans', sans-serif;
+  --r:12px; --r-sm:8px;
+  --shadow:0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; font-family:var(--font); background:var(--bg); color:var(--ink); font-size:15px; }
+
+/* ── LAYOUT CENTRADO ── */
+.page {
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px 16px;
+}
+
+/* ── TARJETA PRINCIPAL ── */
+.card {
+  background:var(--surface);
+  border-radius:20px;
+  border:1.5px solid var(--border);
+  padding:40px 36px;
+  width:100%;
+  max-width:440px;
+  box-shadow:var(--shadow);
+}
+
+/* ── LOGO / HEADER ── */
+.logo-wrap {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:28px;
+}
+.logo-mark {
+  width:44px; height:44px;
+  background:var(--ink);
+  border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:1.2rem; color:white;
+  flex-shrink:0;
+}
+.logo-text { font-weight:800; font-size:1.3rem; letter-spacing:-.03em; }
+.logo-sub  { font-size:.75rem; color:var(--ink3); margin-top:1px; }
+
+/* ── TITULO SECCIÓN ── */
+.section-title {
+  font-size:1.35rem;
+  font-weight:800;
+  letter-spacing:-.03em;
+  margin-bottom:6px;
+}
+.section-sub {
+  font-size:.85rem;
+  color:var(--ink2);
+  margin-bottom:28px;
+  line-height:1.5;
+}
+
+/* ── STEPS INDICATOR ── */
+.steps {
+  display:flex;
+  gap:6px;
+  margin-bottom:28px;
+}
+.step-dot {
+  height:4px;
+  border-radius:100px;
+  flex:1;
+  background:var(--border);
+  transition:background .3s;
+}
+.step-dot.active { background:var(--ink); }
+.step-dot.done   { background:var(--green); }
+
+/* ── CAMPOS ── */
+.field { margin-bottom:16px; }
+.field label {
+  display:block;
+  font-size:.8rem;
+  font-weight:700;
+  color:var(--ink2);
+  margin-bottom:6px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.field input, .field select {
+  width:100%;
+  padding:11px 14px;
+  border:1.5px solid var(--border);
+  border-radius:var(--r-sm);
+  font-family:var(--font);
+  font-size:.93rem;
+  background:var(--bg);
+  color:var(--ink);
+  transition:border-color .15s, box-shadow .15s;
+  outline:none;
+}
+.field input:focus, .field select:focus {
+  border-color:var(--ink);
+  box-shadow:0 0 0 3px rgba(24,24,27,.08);
+}
+.field input.error { border-color:var(--red); }
+.field-hint {
+  font-size:.75rem;
+  color:var(--ink3);
+  margin-top:5px;
+}
+
+/* ── BOTONES ── */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 22px;
+  border-radius:100px;
+  border:none; cursor:pointer;
+  font-family:var(--font); font-weight:700; font-size:.9rem;
+  transition:all .15s; letter-spacing:-.01em; white-space:nowrap;
+}
+.btn:active { transform:scale(.97); }
+.btn-primary { background:var(--ink); color:white; }
+.btn-primary:hover { background:#333; }
+.btn-primary:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+.btn-ghost  { background:var(--surface2); color:var(--ink); }
+.btn-ghost:hover { background:var(--border); }
+.btn-full   { width:100%; }
+
+/* ── ALERTAS ── */
+.alert {
+  padding:12px 14px;
+  border-radius:var(--r-sm);
+  font-size:.85rem;
+  font-weight:600;
+  margin-bottom:18px;
+  display:none;
+  line-height:1.4;
+}
+.alert-error   { background:var(--red-l);   color:var(--red);   border:1px solid #fca5a5; }
+.alert-success { background:var(--green-l); color:var(--green); border:1px solid #86efac; }
+
+/* ── DIVIDER ── */
+.divider {
+  text-align:center;
+  font-size:.78rem;
+  color:var(--ink3);
+  margin:20px 0;
+  position:relative;
+}
+.divider::before, .divider::after {
+  content:'';
+  position:absolute;
+  top:50%; width:calc(50% - 24px);
+  height:1px; background:var(--border);
+}
+.divider::before { left:0; }
+.divider::after  { right:0; }
+
+/* ── LINK ── */
+.link-row {
+  text-align:center;
+  font-size:.83rem;
+  color:var(--ink3);
+  margin-top:22px;
+}
+.link-row a {
+  color:var(--ink);
+  font-weight:700;
+  text-decoration:none;
+}
+.link-row a:hover { text-decoration:underline; }
+
+/* ── PLAN BADGE ── */
+.plan-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--green-l);
+  color:var(--green);
+  border:1px solid #86efac;
+  border-radius:100px;
+  padding:4px 12px;
+  font-size:.78rem;
+  font-weight:700;
+  margin-bottom:20px;
+}
+
+/* ── CHECKLIST de features incluidas ── */
+.feature-list {
+  background:var(--surface2);
+  border-radius:var(--r-sm);
+  padding:14px 16px;
+  margin-bottom:22px;
+}
+.feature-item {
+  display:flex; align-items:center; gap:8px;
+  font-size:.82rem; color:var(--ink2);
+  padding:4px 0;
+}
+.feature-item span { font-size:.85rem; }
+
+/* ── PANTALLA DE ÉXITO ── */
+.success-screen { display:none; text-align:center; }
+.success-icon {
+  font-size:3rem;
+  margin-bottom:16px;
+  animation:popIn .4s ease;
+}
+@keyframes popIn {
+  0%   { transform:scale(0); opacity:0; }
+  70%  { transform:scale(1.15); }
+  100% { transform:scale(1); opacity:1; }
+}
+
+/* ── SPINNER ── */
+@keyframes spin { to { transform:rotate(360deg); } }
+.spinner {
+  width:16px; height:16px;
+  border:2.5px solid rgba(255,255,255,.3);
+  border-top-color:white;
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  flex-shrink:0;
+}
+
+/* ── TIPO DE NEGOCIO: opciones visuales ── */
+.tipo-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:16px;
+}
+.tipo-opt {
+  border:1.5px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:10px 12px;
+  cursor:pointer;
+  transition:all .15s;
+  display:flex; align-items:center; gap:8px;
+  font-size:.83rem; font-weight:600;
+  background:var(--bg);
+}
+.tipo-opt:hover { border-color:var(--ink3); }
+.tipo-opt.selected {
+  border-color:var(--ink);
+  background:var(--surface2);
+  box-shadow:0 0 0 3px rgba(24,24,27,.06);
+}
+.tipo-opt .tipo-ico { font-size:1.1rem; flex-shrink:0; }
+
+/* ── PASO 2 oculto inicialmente ── */
+#step2 { display:none; }
+
+/* ── RESPONSIVE ── */
+@media (max-width:480px) {
+  .card { padding:28px 20px; }
+  .tipo-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="card">
+
+    <!-- LOGO -->
+    <div class="logo-wrap">
+      <div class="logo-mark">⚡</div>
+      <div>
+        <div class="logo-text">Nomi</div>
+        <div class="logo-sub">Sistema de gestión para tu negocio</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PANTALLA DE ÉXITO (se muestra al finalizar)
+         ══════════════════════════════════════════════════════ -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">🎉</div>
+      <div class="section-title" style="margin-bottom:8px;">¡Cuenta creada!</div>
+      <div class="section-sub">
+        Tu negocio ya está registrado en Nomi con el <strong>Plan Gratis</strong>.
+        Revisá tu email para confirmar tu cuenta, después podés iniciar sesión.
+      </div>
+      <div class="feature-list" style="text-align:left;">
+        <div class="feature-item"><span>✅</span> Punto de venta habilitado</div>
+        <div class="feature-item"><span>✅</span> Hasta 50 productos</div>
+        <div class="feature-item"><span>✅</span> Hasta 20 clientes</div>
+        <div class="feature-item"><span>✅</span> Reportes básicos</div>
+      </div>
+      <a href="index.html" class="btn btn-primary btn-full">Ir al inicio de sesión →</a>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         FORMULARIO PRINCIPAL (se oculta al finalizar)
+         ══════════════════════════════════════════════════════ -->
+    <div id="form-screen">
+
+      <!-- STEPS INDICATOR -->
+      <div class="steps">
+        <div class="step-dot active" id="dot1"></div>
+        <div class="step-dot"        id="dot2"></div>
+      </div>
+
+      <!-- ───── PASO 1: datos del negocio ───── -->
+      <div id="step1">
+        <div class="section-title">Crear cuenta gratis</div>
+        <div class="section-sub">Primero contanos sobre tu negocio.</div>
+
+        <div class="alert alert-error" id="err1"></div>
+
+        <div class="field">
+          <label>Nombre del negocio</label>
+          <input type="text" id="biz-nombre" placeholder="Ej: Imprenta Rodríguez" maxlength="80">
+        </div>
+
+        <div class="field">
+          <label>Tipo de negocio</label>
+          <!-- ── AGREGADO: selector visual de tipo ── -->
+          <div class="tipo-grid" id="tipo-grid">
+            <!-- ══ MODIFICADO: lista unificada de 12 tipos de negocio ══ -->
+            <div class="tipo-opt selected" data-val="Imprenta / Diseño"        onclick="selectTipo(this)"><span class="tipo-ico">🖨️</span>Imprenta / Diseño</div>
+            <div class="tipo-opt"          data-val="Almacén / Minimarket"     onclick="selectTipo(this)"><span class="tipo-ico">🛒</span>Almacén / Minimarket</div>
+            <div class="tipo-opt"          data-val="Gastronomía / Restaurante" onclick="selectTipo(this)"><span class="tipo-ico">🍔</span>Gastronomía / Restaurante</div>
+            <div class="tipo-opt"          data-val="Panadería / Repostería"   onclick="selectTipo(this)"><span class="tipo-ico">🥖</span>Panadería / Repostería</div>
+            <div class="tipo-opt"          data-val="Ferretería / Materiales"  onclick="selectTipo(this)"><span class="tipo-ico">🔧</span>Ferretería / Materiales</div>
+            <div class="tipo-opt"          data-val="Salud / Belleza"          onclick="selectTipo(this)"><span class="tipo-ico">💅</span>Salud / Belleza</div>
+            <div class="tipo-opt"          data-val="Taller / Automotor"       onclick="selectTipo(this)"><span class="tipo-ico">🚗</span>Taller / Automotor</div>
+            <div class="tipo-opt"          data-val="Ropa / Calzado"           onclick="selectTipo(this)"><span class="tipo-ico">👕</span>Ropa / Calzado</div>
+            <div class="tipo-opt"          data-val="Farmacia / Herboristería" onclick="selectTipo(this)"><span class="tipo-ico">💊</span>Farmacia / Herboristería</div>
+            <div class="tipo-opt"          data-val="Tecnología / Electrónica" onclick="selectTipo(this)"><span class="tipo-ico">📱</span>Tecnología / Electrónica</div>
+            <div class="tipo-opt"          data-val="Educación / Cursos"       onclick="selectTipo(this)"><span class="tipo-ico">🎓</span>Educación / Cursos</div>
+            <div class="tipo-opt"          data-val="Otro"                     onclick="selectTipo(this)"><span class="tipo-ico">📦</span>Otro</div>
+            <!-- ══ FIN MODIFICADO ══ -->
+          </div>
+          <input type="hidden" id="biz-tipo" value="Imprenta / Diseño">
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="goStep2()">
+          Continuar →
+        </button>
+      </div>
+
+      <!-- ───── PASO 2: email y contraseña ───── -->
+      <div id="step2">
+        <div class="section-title">Tu acceso</div>
+        <div class="section-sub">Creá el email y contraseña con que vas a ingresar.</div>
+
+        <div class="plan-badge">🎁 Plan Gratis incluido</div>
+
+        <div class="feature-list">
+          <div class="feature-item"><span>✅</span> Punto de venta</div>
+          <div class="feature-item"><span>✅</span> Hasta 50 productos</div>
+          <div class="feature-item"><span>✅</span> Hasta 20 clientes</div>
+          <div class="feature-item"><span>✅</span> Reportes básicos</div>
+          <div class="feature-item"><span>🔒</span> Reportes avanzados y más — Plan Pro</div>
+        </div>
+
+        <div class="alert alert-error" id="err2"></div>
+
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="tu@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" id="reg-pass" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+          <div class="field-hint">Al menos 8 caracteres. Guardala bien.</div>
+        </div>
+        <div class="field">
+          <label>Confirmar contraseña</label>
+          <input type="password" id="reg-pass2" placeholder="Repetí la contraseña"
+            onkeydown="if(event.key==='Enter') doRegister()">
+        </div>
+
+        <button class="btn btn-primary btn-full" id="reg-btn" onclick="doRegister()">
+          Crear cuenta gratis →
+        </button>
+
+        <div style="margin-top:12px;">
+          <button class="btn btn-ghost btn-full" onclick="goStep1()">
+            ← Volver
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /form-screen -->
+
+    <div class="link-row">
+      ¿Ya tenés cuenta? <a href="index.html">Iniciar sesión</a>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /page -->
+
+<script>
+// ══════════════════════════════════════════════════════
+// ETAPA 4 — MÓDULO A: Lógica de registro
+// ══════════════════════════════════════════════════════
+
+// ── CONFIGURACIÓN SUPABASE (mismas credenciales que la app) ──
+const SUPA_URL = 'https://ykglfcjxbgrutpyrjrzv.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZ2xmY2p4YmdydXRweXJqcnp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTk1ODAsImV4cCI6MjA5NDMzNTU4MH0.lZP5ZecJifxWYX9eDK08i2vEgJ8gnmXEyAFgoD4xTKI';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── ESTADO: guardamos los datos del paso 1 mientras avanzamos ──
+let step1Data = { nombre: '', tipo: 'Imprenta / Diseño' }; // ══ sin cambio: el valor sigue igual ══
+
+// ────────────────────────────────────────────────────────
+// selectTipo: resalta la opción clickeada en el selector visual
+// ────────────────────────────────────────────────────────
+function selectTipo(el) {
+  document.querySelectorAll('.tipo-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('biz-tipo').value = el.dataset.val;
+}
+
+// ────────────────────────────────────────────────────────
+// showErr: muestra el mensaje de error en el paso indicado
+// ────────────────────────────────────────────────────────
+function showErr(paso, msg) {
+  const el = document.getElementById('err' + paso);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideErr(paso) {
+  const el = document.getElementById('err' + paso);
+  el.style.display = 'none';
+}
+
+// ────────────────────────────────────────────────────────
+// goStep2: valida paso 1 y avanza
+// ────────────────────────────────────────────────────────
+function goStep2() {
+  hideErr(1);
+  const nombre = document.getElementById('biz-nombre').value.trim();
+  const tipo   = document.getElementById('biz-tipo').value;
+
+  if (!nombre) {
+    showErr(1, '⚠️ Ingresá el nombre de tu negocio.');
+    document.getElementById('biz-nombre').focus();
+    return;
+  }
+  if (nombre.length < 2) {
+    showErr(1, '⚠️ El nombre debe tener al menos 2 caracteres.');
+    return;
+  }
+
+  // Guardamos para usarlos en el registro final
+  step1Data = { nombre, tipo };
+
+  // Actualizar steps
+  document.getElementById('dot1').classList.remove('active');
+  document.getElementById('dot1').classList.add('done');
+  document.getElementById('dot2').classList.add('active');
+
+  // Mostrar paso 2
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  document.getElementById('reg-email').focus();
+}
+
+// ────────────────────────────────────────────────────────
+// goStep1: volver al paso 1
+// ────────────────────────────────────────────────────────
+function goStep1() {
+  hideErr(2);
+  document.getElementById('dot1').classList.add('active');
+  document.getElementById('dot1').classList.remove('done');
+  document.getElementById('dot2').classList.remove('active');
+
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+}
+
+// ────────────────────────────────────────────────────────
+// doRegister: el corazón del módulo
+// Flujo: signUp → crear negocio → usuarios_negocios → suscripción
+// ────────────────────────────────────────────────────────
+async function doRegister() {
+  hideErr(2);
+
+  const email  = document.getElementById('reg-email').value.trim();
+  const pass   = document.getElementById('reg-pass').value;
+  const pass2  = document.getElementById('reg-pass2').value;
+  const btn    = document.getElementById('reg-btn');
+
+  // ── Validaciones básicas ──
+  if (!email || !pass || !pass2) {
+    showErr(2, '⚠️ Completá todos los campos.');
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showErr(2, '⚠️ El email no tiene un formato válido.');
+    return;
+  }
+  if (pass.length < 8) {
+    showErr(2, '⚠️ La contraseña debe tener al menos 8 caracteres.');
+    return;
+  }
+  if (pass !== pass2) {
+    showErr(2, '⚠️ Las contraseñas no coinciden.');
+    return;
+  }
+
+  // ── Mostrar spinner mientras procesa ──
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Creando cuenta…';
+
+  try {
+    // ── PASO 1: Crear usuario en Supabase Auth ──
+    const { data: authData, error: authError } = await sb.auth.signUp({
+      email,
+      password: pass,
+    });
+
+    if (authError) {
+      // Mensaje de error amigable según el tipo
+      let msg = '❌ Error al crear la cuenta. Intentá de nuevo.';
+      if (authError.message.includes('already registered')) {
+        msg = '⚠️ Ese email ya tiene una cuenta. ¿Querés iniciar sesión?';
+      } else if (authError.message.includes('invalid')) {
+        msg = '⚠️ El email no es válido.';
+      }
+      showErr(2, msg);
+      btn.disabled = false;
+      btn.innerHTML = 'Crear cuenta gratis →';
+      return;
+    }
+
+    const userId = authData.user?.id;
+    if (!userId) throw new Error('No se obtuvo el ID del usuario creado.');
+
+    // ── PASO 2: Crear fila en tabla negocios ──
+    const { data: negocio, error: negErr } = await sb
+      .from('negocios')
+      .insert({
+        nombre: step1Data.nombre,
+        tipo:   step1Data.tipo,
+      })
+      .select()
+      .single();
+
+    if (negErr) throw negErr;
+    const negocioId = negocio.id;
+
+    // ── PASO 3: Vincular usuario con el negocio ──
+    const { error: unErr } = await sb
+      .from('usuarios_negocios')
+      .insert({
+        user_id:   userId,
+        negocio_id: negocioId,
+        rol:       'admin',   // primer usuario = dueño del negocio
+      });
+
+    if (unErr) throw unErr;
+
+    // ── PASO 4: Crear suscripción con plan gratis ──
+    const { error: susErr } = await sb
+      .from('suscripciones')
+      .insert({
+        negocio_id: negocioId,
+        plan_id:    'gratis',
+        estado:     'activa',
+      });
+
+    if (susErr) throw susErr;
+
+    // ── ÉXITO: mostrar pantalla de confirmación ──
+    document.getElementById('form-screen').style.display  = 'none';
+    document.getElementById('success-screen').style.display = 'block';
+
+  } catch (err) {
+    console.error('Error en registro:', err);
+    showErr(2, '❌ Ocurrió un error inesperado. Por favor intentá de nuevo.');
+    btn.disabled = false;
+    btn.innerHTML = 'Crear cuenta gratis →';
+  }
+}
+// ══════════════════════════════════════════════════════
+// FIN MÓDULO A
+// ══════════════════════════════════════════════════════
+</script>
+</body>
+</html>
