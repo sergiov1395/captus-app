@@ -775,17 +775,25 @@ html.dark button[onclick="exportReportePDF()"] {
 }
 .mas-modal .dark-toggle { border-radius: 9px; padding: 10px 12px; }
 .mas-modal .dark-toggle:hover { background: rgba(255,255,255,.07); }
-.mas-modal .nav-item { border-radius: 9px; padding: 10px 12px; font-size: .9rem; }
-.mas-modal .btn-ghost {
-  background: rgba(255,255,255,.08);
+.mas-modal .nav-item {
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: .9rem;
   color: white;
+}
+.mas-modal .nav-item:hover { background: rgba(255,255,255,.07); }
+.mas-modal .btn-ghost {
+  background: rgba(255,255,255,.08) !important;
+  color: white !important;
   width: 100%;
   justify-content: flex-start;
   padding: 10px 12px;
   border-radius: 9px;
   font-size: .9rem;
   gap: 10px;
+  border: none;
 }
+.mas-modal .btn-ghost:hover { background: rgba(255,255,255,.13) !important; }
 
 /* Pantallas muy pequeñas (≤ 380px) */
 @media (max-width: 380px) {
