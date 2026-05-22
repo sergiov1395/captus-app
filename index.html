@@ -760,11 +760,13 @@ html.dark button[onclick="exportReportePDF()"] {
   }
   /* ── FIN LÍNEAS NUEVAS ── */
 
-  /* Fiado: buscador y tabs compactos */
-  #screen-fiado .topbar { flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
-  #screen-fiado .topbar-actions { flex-wrap: wrap; gap: 5px; width: 100%; }
-  #screen-fiado .segment { flex-wrap: wrap; }
-  #screen-fiado .seg-btn { font-size: .72rem; padding: 5px 9px; }
+/* Fiado: topbar en filas — MODIFICADO */
+  #screen-fiado .topbar { flex-wrap: wrap; gap: 5px; padding: 10px 12px; }
+  #screen-fiado .topbar-actions { display: none; } /* legacy, ya no se usa */
+  #screen-fiado .fiado-row1 { width: 100%; }
+  #screen-fiado .fiado-row2 { width: 100%; }
+  #screen-fiado .fiado-row3 { width: 100%; }
+  #screen-fiado .fiado-row3 .seg-btn { font-size: .78rem; padding: 7px 4px; text-align:center; }
   #screen-fiado #fiado-search { width: 100%; }
 
   /* Balance: topbar compacto */
@@ -1525,36 +1527,39 @@ html.dark button[onclick="exportReportePDF()"] {
 
 <!-- ── AGREGADO: pantalla fiado ── -->
 <div class="screen" id="screen-fiado">
-  <div class="topbar">
-    <div>
+  <!-- ══ MODIFICADO: topbar en 2 filas — buscador arriba, tabs abajo ══ -->
+  <div class="topbar" id="fiado-topbar">
+    <!-- Fila 1: Título + subtítulo -->
+    <div class="fiado-row1">
       <div class="topbar-title">💳 Fiado / Cuentas</div>
       <div class="topbar-sub" id="fiado-sub">Cargando…</div>
     </div>
-    <!-- ── MODIFICADO: se agregó buscador de cliente en fiado ── -->
-    <div class="topbar-actions" style="flex-wrap:wrap;gap:6px;align-items:center;">
-      <!-- ── LÍNEA AGREGADA: buscador de nombre ── -->
-      <div style="position:relative;">
-        <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:.85rem;pointer-events:none;">🔍</span>
+    <!-- Fila 2: Buscador ancho completo — LÍNEA MODIFICADA -->
+    <div class="fiado-row2">
+      <div style="position:relative;width:100%;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.85rem;pointer-events:none;">🔍</span>
         <input
           id="fiado-search"
           type="text"
           placeholder="Buscar cliente…"
           oninput="renderFiado()"
-          style="padding:7px 10px 7px 30px;border:1.5px solid var(--border);
+          style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--border);
             border-radius:var(--r-sm);background:var(--surface);
-            color:var(--ink1);font-size:.82rem;width:160px;
-            font-family:var(--font);outline:none;"
+            color:var(--ink);font-size:.85rem;
+            font-family:var(--font);outline:none;box-sizing:border-box;"
         >
       </div>
-      <!-- ── FIN LÍNEA AGREGADA ── -->
-      <div class="segment">
-        <button class="seg-btn active" id="fiado-tab-pendiente" onclick="setFiadoTab('pendiente',this)">⏳ Pendientes</button>
-        <button class="seg-btn" id="fiado-tab-pagado" onclick="setFiadoTab('pagado',this)">✅ Pagados</button>
-        <button class="seg-btn" id="fiado-tab-clientes" onclick="setFiadoTab('clientes',this)">👤 Por cliente</button>
+    </div>
+    <!-- Fila 3: Tabs ancho completo — LÍNEAS MODIFICADAS -->
+    <div class="fiado-row3">
+      <div class="segment" style="width:100%;display:flex;">
+        <button class="seg-btn active" id="fiado-tab-pendiente" onclick="setFiadoTab('pendiente',this)" style="flex:1;">⏳ Pendientes</button>
+        <button class="seg-btn" id="fiado-tab-pagado" onclick="setFiadoTab('pagado',this)" style="flex:1;">✅ Pagados</button>
+        <button class="seg-btn" id="fiado-tab-clientes" onclick="setFiadoTab('clientes',this)" style="flex:1;">👤 Por cliente</button>
       </div>
     </div>
-    <!-- ── FIN MODIFICADO ── -->
   </div>
+  <!-- ══ FIN MODIFICADO ══ -->
   <div class="content" style="max-width:860px;">
     <!-- Resumen rápido -->
     <div class="grid-3" style="margin-bottom:20px;" id="fiado-resumen-cards">
