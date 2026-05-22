@@ -581,6 +581,9 @@ const [
 
   // ── NUEVO: verificar si ya hay una caja abierta hoy ──
   await verificarCajaHoy();
+
+  // ── AGREGADO: mostrar FAB del carrito si estamos en móvil ──
+  updateCartFab();
 }
 
 // ══════════════════════════════════════════════════════════
