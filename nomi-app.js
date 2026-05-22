@@ -6107,13 +6107,23 @@ function ensureCartCloseBtn() {
 function openCartModal() {
   if (!isMobile()) return;
   ensureCartCloseBtn();
-  document.querySelector('.pos-cart')?.classList.add('cart-open');
+  const cart = document.querySelector('.pos-cart');
+  if (cart) {
+    cart.style.height = '96dvh';
+    cart.style.maxHeight = '96dvh';
+  }
+  cart?.classList.add('cart-open');
   document.getElementById('pos-cart-overlay')?.classList.add('overlay-open');
   document.getElementById('pos-cart-fab').style.display = 'none';
 }
 
 function closeCartModal() {
-  document.querySelector('.pos-cart')?.classList.remove('cart-open');
+  const cart = document.querySelector('.pos-cart');
+  if (cart) {
+    cart.style.height = '';
+    cart.style.maxHeight = '';
+  }
+  cart?.classList.remove('cart-open');
   document.getElementById('pos-cart-overlay')?.classList.remove('overlay-open');
   updateCartFab();
 }
