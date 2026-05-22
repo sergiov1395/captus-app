@@ -528,40 +528,68 @@ html.dark button[onclick="exportReportePDF()"] {
   .stat-card { padding: 12px; }
 
   /* ══════════════════════════════════════════════════════
-     POS MÓVIL — NUEVA VERSIÓN: carrito como modal FAB
-     El .pos-cart original se oculta en móvil.
-     Un botón flotante (FAB) abre el modal del carrito.
+     POS MÓVIL — carrito como bottom-sheet sobre overlay
+     El .pos-cart existente se mueve a fixed en móvil.
+     PC no se toca: grid de 2 columnas intacto.
   ══════════════════════════════════════════════════════ */
 
-  /* Topbar POS en móvil: TC y botón solo icono */
+  /* Topbar POS compacto: texto del botón gasto se oculta */
   #screen-pos .topbar-actions { flex-wrap: nowrap; gap: 5px; }
-  #pos-tc-bar { font-size: .7rem !important; }
-  #pos-tc-bar #pos-tc-pills { grid-template-columns: 1fr 1fr; gap: 3px; }
-  #screen-pos .btn-danger.btn-sm { padding: 6px 8px; font-size: 0; }
+  #screen-pos .btn-danger.btn-sm { padding: 6px 9px; font-size: 0; }
   #screen-pos .btn-danger.btn-sm::before { content: '💸'; font-size: 1.1rem; }
 
-  /* Layout POS: ocupa toda la pantalla disponible */
+  /* POS layout: una sola columna, los productos ocupan todo */
   .pos-layout {
-    display: flex;
-    flex-direction: column;
+    display: block;
     height: calc(100dvh - 112px);
     overflow: hidden;
+    position: relative;
   }
-
-  /* Productos: pantalla completa con scroll */
   .pos-products {
-    flex: 1;
+    height: 100%;
     overflow-y: auto;
-    padding: 10px 12px 80px; /* padding-bottom para no quedar bajo el FAB */
-    min-height: 0;
+    padding: 10px 12px 80px;
   }
 
-  /* El carrito lateral se oculta completamente en móvil */
-  .pos-cart { display: none !important; }
+  /* El carrito se convierte en bottom-sheet fijo, oculto por defecto */
+  .pos-cart {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 88dvh;
+    max-height: 88dvh;
+    border-left: none !important;
+    border-top: 2px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 32px rgba(0,0,0,.18);
+    z-index: 400;
+    transform: translateY(100%);
+    transition: transform .28s cubic-bezier(.32,1,.5,1);
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  /* Cuando está abierto */
+  .pos-cart.cart-open {
+    transform: translateY(0);
+  }
 
-  /* FAB — botón flotante del carrito, oculto por defecto (JS controla visibilidad) */
-  .pos-cart-fab {
+  /* Overlay oscuro detrás del carrito */
+  .pos-cart-overlay {
     display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 399;
+  }
+  .pos-cart-overlay.overlay-open {
+    display: block;
+  }
+
+  /* FAB — botón flotante, oculto por JS hasta que sea móvil+POS */
+  .pos-cart-fab {
     position: fixed;
     bottom: 72px;
     right: 14px;
@@ -578,7 +606,7 @@ html.dark button[onclick="exportReportePDF()"] {
     box-shadow: 0 4px 18px rgba(22,163,74,.45);
     align-items: center;
     gap: 8px;
-    transition: transform .15s, box-shadow .15s;
+    transition: transform .15s;
   }
   .pos-cart-fab:active { transform: scale(.95); }
   .pos-cart-fab-badge {
@@ -591,47 +619,21 @@ html.dark button[onclick="exportReportePDF()"] {
     min-width: 20px;
     text-align: center;
   }
-  .pos-cart-fab.fab-hidden { display: none !important; }
 
-  /* MODAL CARRITO MÓVIL */
-  .pos-cart-modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.45);
-    z-index: 300;
-    align-items: flex-end;
-  }
-  .pos-cart-modal-overlay.open { display: flex; }
-  .pos-cart-modal {
-    width: 100%;
-    max-height: 90dvh;
-    background: var(--bg);
-    border-radius: 20px 20px 0 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: slideUpCart .25s cubic-bezier(.32,1,.5,1);
-  }
-  .pos-cart-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px 10px;
-    border-bottom: 1.5px solid var(--border);
-    flex-shrink: 0;
-  }
-  .pos-cart-modal-items {
+  /* Scroll de items dentro del carrito */
+  .cart-items {
     flex: 1;
     overflow-y: auto;
-    padding: 6px 14px;
-    min-height: 80px;
+    min-height: 60px;
   }
-  .pos-cart-modal-footer {
+  .cart-footer {
     flex-shrink: 0;
-    background: var(--surface);
-    border-top: 1.5px solid var(--border);
-    padding: 10px 14px 14px;
+    overflow: visible;
+  }
+  .cart-footer-fields {
+    padding: 6px 12px 10px;
+    overflow-y: auto;
+    max-height: 42dvh;
   }
 
   .pos-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
@@ -980,85 +982,14 @@ html.dark button[onclick="exportReportePDF()"] {
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
-<!-- FAB CARRITO MÓVIL — Solo visible en @media ≤ 768px    -->
+<!-- FAB + OVERLAY CARRITO MÓVIL                           -->
 <!-- ══════════════════════════════════════════════════════ -->
 <button class="pos-cart-fab" id="pos-cart-fab" style="display:none;" onclick="openCartModal()">
   🛒 Carrito
   <span class="pos-cart-fab-badge" id="pos-cart-fab-badge">0</span>
 </button>
-
-<!-- MODAL CARRITO MÓVIL -->
-<div class="pos-cart-modal-overlay" id="pos-cart-modal-overlay" onclick="if(event.target===this)closeCartModal()">
-  <div class="pos-cart-modal">
-    <div class="pos-cart-modal-header">
-      <div style="font-weight:800;font-size:1rem;">🛒 Carrito <span id="cart-count-lbl-modal" style="font-weight:400;color:var(--ink3);font-size:.8rem;"></span></div>
-      <button onclick="closeCartModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--ink3);line-height:1;padding:4px;">✕</button>
-    </div>
-    <div class="pos-cart-modal-items" id="cart-items-modal">
-      <div class="empty-state" style="padding:30px 0"><div class="empty-icon">🛒</div><div class="empty-text">Carrito vacío.<br>Agregá productos.</div></div>
-    </div>
-    <div class="pos-cart-modal-footer">
-      <!-- Subtotal y Total -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-        <span style="font-size:.78rem;color:var(--ink3);">Subtotal</span>
-        <span style="font-size:.82rem;color:var(--ink3);" id="cart-subtotal-modal">Gs 0</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-weight:700;font-size:.92rem;">Total</span>
-          <span id="cart-desc-badge-modal" style="display:none;font-size:.68rem;font-weight:700;color:var(--red);background:var(--red-l);border-radius:100px;padding:1px 7px;"></span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-weight:800;font-size:1.25rem;letter-spacing:-.03em;" id="cart-total-modal">Gs 0</span>
-          <button onclick="toggleDescuentoPanelModal()" title="Aplicar descuento"
-            style="background:none;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:.8rem;padding:2px 7px;color:var(--ink3);line-height:1.4;">🏷️</button>
-        </div>
-      </div>
-      <!-- Panel descuento -->
-      <div id="cart-descuento-wrap-modal" style="display:none;background:var(--surface2);border-radius:var(--r-sm);padding:7px 10px;margin-bottom:8px;">
-        <div style="display:flex;gap:6px;align-items:center;">
-          <select id="cart-desc-tipo-modal" style="padding:4px 6px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.8rem;background:var(--bg);outline:none;flex-shrink:0;">
-            <option value="pct">%</option><option value="fijo">Gs</option>
-          </select>
-          <input type="number" id="cart-desc-val-modal" min="0" placeholder="0" oninput="previewDescuentoModal()"
-            style="flex:1;padding:4px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.85rem;background:var(--bg);outline:none;">
-          <button onclick="aplicarDescuentoModal()" class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:.78rem;padding:3px 9px;">✓</button>
-          <button onclick="quitarDescuentoModal()" style="background:none;border:none;cursor:pointer;font-size:.85rem;color:var(--red);font-weight:700;padding:2px 4px;">✕</button>
-        </div>
-        <div id="cart-desc-monto-modal" style="font-size:.75rem;font-weight:700;color:var(--red);margin-top:4px;display:none;">−Gs 0</div>
-      </div>
-      <!-- Campos de venta -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;width:72px;flex-shrink:0;">👤 Cliente</label>
-        <select id="cart-cliente-modal" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;"></select>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;width:72px;flex-shrink:0;">💳 Pago</label>
-        <select id="cart-pago-modal" onchange="document.getElementById('cc-vencimiento-wrap-modal').style.display=this.value==='Cuenta corriente'?'flex':'none'" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;">
-          <option>Efectivo</option><option>Transferencia</option><option>Tarjeta</option><option>Cuenta corriente</option>
-        </select>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;width:72px;flex-shrink:0;">📝 Nota</label>
-        <input type="text" id="cart-nota-modal" placeholder="opcional"
-          style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;box-sizing:border-box;">
-      </div>
-      <div id="cc-vencimiento-wrap-modal" style="display:none;align-items:center;gap:8px;margin-bottom:6px;">
-        <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;width:72px;flex-shrink:0;">📅 Vence</label>
-        <input type="date" id="cc-fecha-vencimiento-pos-modal"
-          style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.82rem;background:var(--bg);outline:none;box-sizing:border-box;">
-      </div>
-      <!-- Moneda cobro -->
-      <div id="cobro-moneda-wrap-modal" style="display:none;margin-bottom:10px;">
-        <div style="font-size:.75rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">💱 Cobrar en</div>
-        <div id="cobro-moneda-pills-modal" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
-        <div id="cobro-equivalente-modal" style="display:none;background:var(--surface2);border-radius:var(--r-sm);padding:8px 12px;font-size:.82rem;"></div>
-      </div>
-      <button class="btn btn-green" style="width:100%;font-size:.92rem;padding:12px;" onclick="finalizarVentaModal()">✓ Cobrar</button>
-    </div>
-  </div>
-</div>
-<!-- ══ FIN MODAL CARRITO MÓVIL ══ -->
+<div class="pos-cart-overlay" id="pos-cart-overlay" onclick="if(event.target===this)closeCartModal()"></div>
+<!-- ══ FIN FAB CARRITO MÓVIL ══ -->
 
 <!-- ══════════════════════════════════════════════════════ -->
 <!-- PANTALLA TAREAS — MODIFICADO: botón Historial agregado -->
