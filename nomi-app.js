@@ -6070,8 +6070,11 @@ function toggleAcordeon(listId, chevronId, badgeId) {
     }, 260);
     if (chevron) { chevron.style.transform = 'rotate(0deg)'; }
   }
+}
+// ══════════════════════════════════════════════════════════════
+// FIN ACORDEÓN GENÉRICO
+// ══════════════════════════════════════════════════════════════
 
-  // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
 // FAB CARRITO MÓVIL — v3 sin HTML duplicado
 // Mueve el .pos-cart original a bottom-sheet en móvil.
@@ -6158,8 +6161,3 @@ window.addEventListener('resize', () => {
 });
 
 // ══ FIN FAB CARRITO MÓVIL v3 ══
-
-}
-// ══════════════════════════════════════════════════════════
-// FIN ACORDEÓN GENÉRICO
-// ══════════════════════════════════════════════════════════
