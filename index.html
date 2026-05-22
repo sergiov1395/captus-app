@@ -726,51 +726,56 @@ html.dark button[onclick="exportReportePDF()"] {
   .prod-row .row-icon { flex-shrink: 0; }
 
   /* ════════════════════════════════════════════════
-     MODAL "MÁS" — para Plan, Config, Oscuro, Logout
+     ÍTEM "MÁS" — solo visible en el bottom bar móvil
   ════════════════════════════════════════════════ */
-  .mas-modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.45);
-    z-index: 500;
-    align-items: flex-end;
-  }
+  #nav-mas-section { display: block !important; }
+}
+
+/* ════════════════════════════════════════════════
+   MODAL "MÁS" — fuera del media query
+   display:none global; solo abre en móvil via JS
+════════════════════════════════════════════════ */
+.mas-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 500;
+  align-items: flex-end;
+}
+@media (max-width: 768px) {
   .mas-modal-overlay.open { display: flex; }
-  .mas-modal {
-    width: 100%;
-    background: var(--ink);
-    border-radius: 20px 20px 0 0;
-    padding: 16px 12px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    animation: slideUpCart .22s cubic-bezier(.32,1,.5,1);
-  }
-  .mas-modal-title {
-    font-size: .65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    color: rgba(255,255,255,.35);
-    padding: 0 8px 8px;
-  }
-  .mas-modal .dark-toggle {
-    border-radius: 9px;
-    padding: 10px 12px;
-  }
-  .mas-modal .dark-toggle:hover { background: rgba(255,255,255,.07); }
-  .mas-modal .nav-item { border-radius: 9px; padding: 10px 12px; font-size: .9rem; }
-  .mas-modal .btn-ghost {
-    background: rgba(255,255,255,.08);
-    color: white;
-    width: 100%;
-    justify-content: flex-start;
-    padding: 10px 12px;
-    border-radius: 9px;
-    font-size: .9rem;
-    gap: 10px;
-  }
+}
+.mas-modal {
+  width: 100%;
+  background: var(--ink);
+  border-radius: 20px 20px 0 0;
+  padding: 16px 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: slideUpCart .22s cubic-bezier(.32,1,.5,1);
+}
+.mas-modal-title {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.35);
+  padding: 0 8px 8px;
+}
+.mas-modal .dark-toggle { border-radius: 9px; padding: 10px 12px; }
+.mas-modal .dark-toggle:hover { background: rgba(255,255,255,.07); }
+.mas-modal .nav-item { border-radius: 9px; padding: 10px 12px; font-size: .9rem; }
+.mas-modal .btn-ghost {
+  background: rgba(255,255,255,.08);
+  color: white;
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: .9rem;
+  gap: 10px;
 }
 
 /* Pantallas muy pequeñas (≤ 380px) */
@@ -890,7 +895,7 @@ html.dark button[onclick="exportReportePDF()"] {
     <div class="nav-item" id="nav-movimientos" onclick="navTo('movimientos')"><span class="nav-icon">📦</span>Movimientos</div>
   </div>
   <!-- ══ AGREGADO: ítem "Más" solo visible en móvil (bottom bar) ══ -->
-  <div class="sidebar-section" id="nav-mas-section" style="display:none;">
+  <div class="sidebar-section" id="nav-mas-section">
     <div class="nav-item" onclick="openMasModal()"><span class="nav-icon">⋯</span>Más</div>
   </div>
   <div class="sidebar-footer">

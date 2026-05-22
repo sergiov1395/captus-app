@@ -6190,15 +6190,6 @@ function closeMasModal() {
   document.getElementById('mas-modal-overlay')?.classList.remove('open');
 }
 
-// Mostrar el ítem "Más" solo en móvil
-function updateMasNavItem() {
-  const sec = document.getElementById('nav-mas-section');
-  if (!sec) return;
-  sec.style.display = isMobile() ? '' : 'none';
-}
-
-window.addEventListener('resize', updateMasNavItem);
-window.addEventListener('load', () => setTimeout(updateMasNavItem, 100));
 // ══ FIN MODAL MÁS ══
 
 // ══ FIN FAB CARRITO MÓVIL v3 ══
