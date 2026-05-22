@@ -4633,17 +4633,17 @@ async function saveConfig(){
 }
 
 // ── NUEVO: muestra banner verde "Cambios guardados" en pantalla config ──
+// ══ MODIFICADO: se eliminó el showToast duplicado, solo queda el banner verde central ══
 function showSaveConfirmation() {
-  // También dispara el toast clásico
-  showToast('✅ Cambios guardados correctamente');
   // Banner flotante en el topbar de config
   let banner = document.getElementById('cfg-save-banner');
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'cfg-save-banner';
+    // ── MODIFICADO: solo estilos de posición/layout aquí; color en CSS ──
     banner.style.cssText = `
       position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-10px);
-      background:#166534;color:white;padding:10px 24px;border-radius:100px;
+      padding:10px 24px;border-radius:100px;
       font-size:.85rem;font-weight:700;z-index:9999;
       box-shadow:0 4px 16px rgba(0,0,0,.18);
       transition:all .3s cubic-bezier(.34,1.56,.64,1);
@@ -4661,6 +4661,7 @@ function showSaveConfirmation() {
     banner.style.transform = 'translateX(-50%) translateY(-10px)';
   }, 2800);
 }
+// ══ FIN MODIFICADO ══
 // ── FIN NUEVO showSaveConfirmation ──
 
 function selectPrinter(type,el){
