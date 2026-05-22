@@ -556,7 +556,19 @@ html.dark button[onclick="exportReportePDF()"] {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
     gap: 4px;
-    width: fit-content;
+    width: 100%;
+    max-width: 320px;
+  }
+  /* Compactar cada pill en móvil */
+  #screen-pos #pos-tc-pills > div {
+    padding: 3px 5px !important;
+    font-size: .72rem !important;
+    gap: 3px !important;
+  }
+  /* Reducir el input de TC en móvil */
+  #screen-pos #pos-tc-pills input[type="number"] {
+    width: 44px !important;
+    font-size: .75rem !important;
   }
   #screen-pos .btn-danger.btn-sm {
     width: 100%;
