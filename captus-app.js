@@ -4,7 +4,20 @@
 // ═══════════════════════════════════════════════════
 const SUPA_URL = 'https://ykglfcjxbgrutpyrjrzv.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZ2xmY2p4YmdydXRweXJqcnp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTk1ODAsImV4cCI6MjA5NDMzNTU4MH0.lZP5ZecJifxWYX9eDK08i2vEgJ8gnmXEyAFgoD4xTKI';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── MODIFICADO: función para crear un cliente fresco sin lock bloqueado ──
+function crearClienteSupa() {
+  return supabase.createClient(SUPA_URL, SUPA_KEY, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+      // lock timeout corto para evitar bloqueos eternos
+      lockAcquireTimeout: 5000
+    }
+  });
+}
+let sb = crearClienteSupa();
 
 // ══════════════════════════════════════════════════════
 // ▼▼▼ NUEVO: SISTEMA DE LOGIN ▼▼▼
@@ -413,9 +426,11 @@ async function initApp(){
   document.getElementById('loading-screen').style.display='flex';
 
   try {
-    // ── AGREGADO ETAPA 2: resolver negocio_id del usuario logueado ──
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) throw new Error('Sin sesión activa');
+    // getSession() lee el token del localStorage sin llamada de red (no se cuelga)
+    const { data: { session }, error: sessionErr } = await sb.auth.getSession();
+    if (sessionErr) throw new Error('getSession falló: ' + sessionErr.message);
+    if (!session?.user) throw new Error('Sin sesión activa');
+    const user = session.user;
 
     const { data: unData, error: unError } = await sb
       .from('usuarios_negocios')
@@ -423,9 +438,9 @@ async function initApp(){
       .eq('user_id', user.id)
       .single();
 
-    if (unError || !unData) throw new Error('Este usuario no tiene negocio asignado');
+    if (unError) throw new Error('usuarios_negocios: ' + unError.message);
+    if (!unData) throw new Error('Este usuario no tiene negocio asignado');
     negocioId = unData.negocio_id;
-    // ── FIN AGREGADO ETAPA 2 ──
 
     // ── AGREGADO ETAPA 4: cargar plan y features del negocio ──
     const { data: susData } = await sb
@@ -557,18 +572,25 @@ const [
 
   } catch(err) {
     console.error('Error cargando datos:', err);
-    // Mostrar error visible en pantalla de carga en lugar de solo toast
-    document.getElementById('loading-screen').innerHTML=`
-      <div style="text-align:center;padding:30px;max-width:480px;">
-        <div style="font-size:2.5rem;margin-bottom:12px;">⚠️</div>
-        <div style="font-weight:800;font-size:1.1rem;margin-bottom:10px;">Error de conexión</div>
-        <div style="font-size:.85rem;color:#666;line-height:1.7;background:#f5f5f5;padding:14px;border-radius:10px;text-align:left;word-break:break-all;">
-          <strong>Mensaje:</strong> ${err?.message || JSON.stringify(err)}<br><br>
-          <strong>Tip:</strong> Abrí F12 → Console para más detalles.
-        </div>
-        <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#18181B;color:white;border:none;border-radius:100px;font-weight:700;cursor:pointer;">Reintentar</button>
-      </div>`;
-    return;
+    // ── MODIFICADO: mostrar el loading (puede estar oculto) y luego el error ──
+    const lsErr = document.getElementById('loading-screen');
+    if (lsErr) {
+      lsErr.style.display = 'flex';
+      lsErr.innerHTML = `
+        <div style="text-align:center;padding:30px;max-width:480px;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">⚠️</div>
+          <div style="font-weight:800;font-size:1.1rem;margin-bottom:10px;">Error al cargar</div>
+          <div style="font-size:.85rem;color:#333;line-height:1.7;background:#f5f5f5;padding:14px;border-radius:10px;text-align:left;word-break:break-all;max-height:200px;overflow:auto;">
+            <strong>Error:</strong> ${err?.message || String(err)}<br>
+            <strong>Código:</strong> ${err?.code || err?.status || '—'}<br>
+            <strong>Detalle:</strong> ${err?.details || err?.hint || '—'}
+          </div>
+          <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#18181B;color:white;border:none;border-radius:100px;font-weight:700;cursor:pointer;">🔄 Reintentar</button>
+        </div>`;
+    }
+    // ── IMPORTANTE: re-lanzar el error para que el finally del IIFE
+    //    sepa que hubo falla y no llame irAlLogin() borrando los tokens ──
+    throw err;
   }
 
 // Ocultar pantalla de carga y arrancar la app
@@ -5936,53 +5958,35 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
 // ══════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════
-// ▼▼▼ NUEVO: ARRANQUE CON GUARD DE SESIÓN ▼▼▼
-// ══════════════════════════════════════════════════════
-// ▼▼▼ ARRANQUE CON GUARD DE SESIÓN ▼▼▼
-// MODIFICADO v3: el listener se registra PRIMERO (sin await previo)
-//   para que funcione en móvil con red lenta.
-//   La limpieza de tokens se hace DENTRO del callback, no antes.
-// ══════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════
-// ▼▼▼ ARRANQUE CON GUARD DE SESIÓN ▼▼▼
-// MODIFICADO v4: loading-screen arranca oculto en el HTML.
-//   El JS lo muestra SOLO durante la carga real de datos.
-//   Así nunca puede quedar colgado por un reload en móvil.
+// ▼▼▼ ARRANQUE — versión final limpia ▼▼▼
 // ══════════════════════════════════════════════════════
 (() => {
-  // El loading-screen está display:none en el HTML — no hace falta ocultarlo.
+  // ── CLAVE: recrear el cliente para liberar cualquier lock bloqueado ──
+  // Cuando una operación anterior queda colgada (cierre de caja, etc.),
+  // el cliente de Supabase queda con un lock interno que congela todas
+  // las llamadas futuras. Recrearlo libera ese lock.
+  sb = crearClienteSupa();
+
   showApp(false);
   showLoginScreen(false);
 
-  let appInicializada = false;
+  let cargando = false; // true mientras initApp() está ejecutándose
 
-  // ── Helper: limpiar tokens de Supabase en localStorage ──
-  function limpiarTokens() {
-    try {
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('sb-'))
-        .forEach(k => localStorage.removeItem(k));
-    } catch(e) { /* safari privado puede tirar error */ }
-  }
-
-  // ── Helper: mostrar el loading-screen ──
-  function mostrarLoading() {
-    const ls = document.getElementById('loading-screen');
-    if (ls) ls.style.display = 'flex';
-  }
-
-  // ── Helper: ocultar el loading-screen ──
   function ocultarLoading() {
     const ls = document.getElementById('loading-screen');
     if (ls) ls.style.display = 'none';
   }
 
-  // ── Helper: ir al login limpiando todo ──
   function irAlLogin() {
-    limpiarTokens();
+    negocioId = null;
     ocultarLoading();
     showApp(false);
     showLoginScreen(true);
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
+    } catch(e) {}
     const emailEl = document.getElementById('login-email');
     const passEl  = document.getElementById('login-password');
     const errorEl = document.getElementById('login-error');
@@ -5991,51 +5995,47 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
     if (errorEl)  errorEl.style.display = 'none';
   }
 
-  // ── Listener principal de auth ──
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
-      ocultarLoading(); // por si acaso
       showLoginScreen(false);
       showApp(true);
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !appInicializada) {
-        appInicializada = true;
-        mostrarLoading(); // mostrar SOLO durante la carga real
-        await initApp();  // initApp() lo oculta al terminar
+      // Si la app ya cargó (negocioId tiene valor), solo ocultar loading y listo
+      if (negocioId !== null) {
+        ocultarLoading();
+        return;
+      }
+      // Solo cargar datos la primera vez (negocioId === null)
+      if (!cargando) {
+        cargando = true;
+        const ls = document.getElementById('loading-screen');
+        if (ls) ls.style.display = 'flex';
+        try {
+          await initApp();
+        } catch(e) {
+          console.error('initApp falló:', e);
+        } finally {
+          cargando = false;
+        }
       }
     } else {
-      // Sin sesión: limpiar y mostrar login
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+      if (event === 'SIGNED_OUT' && !cargando) {
         irAlLogin();
-      } else {
-        // INITIAL_SESSION sin sesión = nunca hubo login
-        ocultarLoading();
-        showApp(false);
-        showLoginScreen(true);
       }
     }
   });
 
-  // ── Guard de seguridad: si a los 12s no arrancó, mostrar login ──
-  // (no usa arranqueTs fijo — usa un timeout simple que se cancela
-  //  en cuanto el listener responde)
-  const _guard = setTimeout(() => {
-    if (!appInicializada) {
-      irAlLogin();
-    }
-  }, 12000);
+  // Guard: si a los 15s todo sigue oculto, ir al login
+  setTimeout(() => {
+    if (cargando) return;
+    const loginVisible = document.getElementById('login-screen')?.style.display !== 'none';
+    const appVisible   = document.querySelector('.app')?.style.display !== 'none';
+    if (!loginVisible && !appVisible) irAlLogin();
+  }, 15000);
 
-  // Cancelar el guard si el listener resolvió
-  const _origOnAuthStateChange = sb.auth.onAuthStateChange;
-  // El guard se cancela dentro de initApp() al terminar exitosamente.
-  // También lo cancelamos si ya hay sesión (ver onAuthStateChange arriba).
-
-  // ── Al volver al frente: si loading visible pero no hay carga activa, ocultar ──
+  // Al volver al frente: solo ocultar loading, nunca recargar datos
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
-    if (appInicializada) {
-      ocultarLoading();
-      clearTimeout(_guard);
-    }
+    if (!cargando) ocultarLoading();
   });
 })();
 // ══════════════════════════════════════════════════════
