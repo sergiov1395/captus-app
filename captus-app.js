@@ -5940,17 +5940,14 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
 // ══════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════
 // ▼▼▼ ARRANQUE CON GUARD DE SESIÓN ▼▼▼
-// MODIFICADO: se agrega limpieza preventiva de token inválido
-//             y timeout de seguridad para el loading-screen
+// MODIFICADO v2: timeout basado en Date.now() para funcionar
+//   correctamente en móvil (los setTimeout se pausan en background)
 // ══════════════════════════════════════════════════════
 (async () => {
   showApp(false);
   showLoginScreen(false);
 
-  // ── AGREGADO: limpiar tokens corruptos ANTES de que Supabase intente usarlos ──
-  // Esto es lo que causa el "Cargando tu negocio" infinito al recargar con F5.
-  // Si el token guardado está vencido o inválido, lo eliminamos aquí mismo
-  // para que onAuthStateChange reciba session=null y muestre el login limpio.
+  // ── Limpiar tokens corruptos ANTES de que Supabase intente usarlos ──
   try {
     const { data, error } = await sb.auth.getSession();
     if (error || !data.session) {
@@ -5959,14 +5956,29 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
         .forEach(k => localStorage.removeItem(k));
     }
   } catch (e) {
-    // Si falla al verificar, también limpiamos por las dudas
     Object.keys(localStorage)
       .filter(k => k.startsWith('sb-'))
       .forEach(k => localStorage.removeItem(k));
   }
-  // ── FIN AGREGADO ──
 
   let appInicializada = false;
+
+  // ── NUEVO v2: guardamos el timestamp de inicio para el timeout real ──
+  const arranqueTs = Date.now();
+  const TIMEOUT_MS = 8000; // 8 segundos
+
+  // ── NUEVO v2: función que evalúa si ya pasó el timeout ──
+  function verificarTimeout() {
+    if (appInicializada) return; // ya arrancó, no hacer nada
+    if (Date.now() - arranqueTs >= TIMEOUT_MS) {
+      // Tiempo agotado: limpiar y mostrar login
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
+      showApp(false);
+      showLoginScreen(true);
+    }
+  }
 
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
@@ -5977,7 +5989,6 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
         await initApp();
       }
     } else {
-      // Limpiar tokens al cerrar sesión o cuando el refresh falla
       if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
         Object.keys(localStorage)
           .filter(k => k.startsWith('sb-'))
@@ -5988,32 +5999,35 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
       const emailEl = document.getElementById('login-email');
       const passEl  = document.getElementById('login-password');
       const errorEl = document.getElementById('login-error');
-      if (emailEl)  emailEl.value        = '';
-      if (passEl)   passEl.value         = '';
+      if (emailEl)  emailEl.value         = '';
+      if (passEl)   passEl.value          = '';
       if (errorEl)  errorEl.style.display = 'none';
     }
   });
 
-  // ── AGREGADO: timeout de seguridad — si a los 8 segundos la app
-  //    no inició, asumimos estado inválido y mostramos el login ──
-  setTimeout(() => {
-    if (!appInicializada) {
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('sb-'))
-        .forEach(k => localStorage.removeItem(k));
-      showApp(false);
-      showLoginScreen(true);
-    }
-  }, 8000);
+  // ── NUEVO v2: timeout con setInterval (sigue corriendo aunque el tab
+  //    esté en background, porque se re-evalúa al volver al frente) ──
+  const _guard = setInterval(() => {
+    if (appInicializada) { clearInterval(_guard); return; }
+    verificarTimeout();
+  }, 500);
 
+  // ── NUEVO v2: al volver al frente, verificar timeout Y ocultar loading ──
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     if (appInicializada) {
       const ls = document.getElementById('loading-screen');
       if (ls) ls.style.display = 'none';
+      clearInterval(_guard);
+      return;
     }
+    // Si volvemos al frente y ya pasaron 8s → mandar al login
+    verificarTimeout();
   });
 })();
+// ══════════════════════════════════════════════════════
+// ▲▲▲ FIN ARRANQUE ▲▲▲
+// ══════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════
 // ▲▲▲ FIN ARRANQUE ▲▲▲
 // ══════════════════════════════════════════════════════
