@@ -595,6 +595,24 @@ const [
 
 // Ocultar pantalla de carga y arrancar la app
   document.getElementById('loading-screen').style.display='none';
+
+  // ── AGREGADO: actualizar nombre y logo en el sidebar al arrancar ──
+  const cfg = DB.config;
+  document.getElementById('sb-biz-name').textContent = cfg.nombre || 'Mi Negocio';
+  document.getElementById('sb-biz-type').textContent = cfg.tipo   || 'Negocio';
+  const sbImg = document.getElementById('sb-logo-img');
+  const sbIni = document.getElementById('sb-logo-inicial');
+  if (cfg.logoDataUrl) {
+    sbImg.src          = cfg.logoDataUrl;
+    sbImg.style.display = 'block';
+    sbIni.style.display = 'none';
+  } else {
+    sbImg.style.display = 'none';
+    sbIni.style.display = '';
+    sbIni.textContent   = (cfg.nombre || 'N').charAt(0).toUpperCase();
+  }
+  // ── FIN AGREGADO ──
+
   // ── MODIFICADO: arranca en 'pos' (Vender), no en 'inicio' ──
   renderPosGrid();
   populateClientes();
