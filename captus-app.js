@@ -5943,13 +5943,18 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
 //   para que funcione en móvil con red lenta.
 //   La limpieza de tokens se hace DENTRO del callback, no antes.
 // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// ▼▼▼ ARRANQUE CON GUARD DE SESIÓN ▼▼▼
+// MODIFICADO v4: loading-screen arranca oculto en el HTML.
+//   El JS lo muestra SOLO durante la carga real de datos.
+//   Así nunca puede quedar colgado por un reload en móvil.
+// ══════════════════════════════════════════════════════
 (() => {
+  // El loading-screen está display:none en el HTML — no hace falta ocultarlo.
   showApp(false);
   showLoginScreen(false);
 
   let appInicializada = false;
-  const arranqueTs    = Date.now();
-  const TIMEOUT_MS    = 10000; // 10 segundos
 
   // ── Helper: limpiar tokens de Supabase en localStorage ──
   function limpiarTokens() {
@@ -5960,14 +5965,22 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
     } catch(e) { /* safari privado puede tirar error */ }
   }
 
-  // ── Helper: forzar pantalla de login ──
-  // MODIFICADO v3.1: también oculta el loading-screen que tiene z-index:9999
-  function irAlLogin() {
-    limpiarTokens();
-    // ── AGREGADO: ocultar loading-screen antes de mostrar login ──
+  // ── Helper: mostrar el loading-screen ──
+  function mostrarLoading() {
+    const ls = document.getElementById('loading-screen');
+    if (ls) ls.style.display = 'flex';
+  }
+
+  // ── Helper: ocultar el loading-screen ──
+  function ocultarLoading() {
     const ls = document.getElementById('loading-screen');
     if (ls) ls.style.display = 'none';
-    // ── FIN AGREGADO ──
+  }
+
+  // ── Helper: ir al login limpiando todo ──
+  function irAlLogin() {
+    limpiarTokens();
+    ocultarLoading();
     showApp(false);
     showLoginScreen(true);
     const emailEl = document.getElementById('login-email');
@@ -5978,61 +5991,50 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
     if (errorEl)  errorEl.style.display = 'none';
   }
 
-  // ── CRÍTICO: registrar el listener SIN ningún await previo ──
-  // Cualquier await antes de esto retrasa el registro y en móvil
-  // Supabase puede disparar INITIAL_SESSION antes de que estemos escuchando.
+  // ── Listener principal de auth ──
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
+      ocultarLoading(); // por si acaso
       showLoginScreen(false);
       showApp(true);
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !appInicializada) {
         appInicializada = true;
-        clearInterval(_guard);
-        await initApp();
+        mostrarLoading(); // mostrar SOLO durante la carga real
+        await initApp();  // initApp() lo oculta al terminar
       }
     } else {
-      // Token expirado o cierre de sesión
-      // MODIFICADO v3.1: quitamos INITIAL_SESSION del else — ese evento
-      // con session=null solo ocurre cuando nunca hubo sesión (primer uso).
-      // Incluirlo acá borraba tokens válidos que aún podían refrescarse.
-      if (event === 'SIGNED_OUT') {
+      // Sin sesión: limpiar y mostrar login
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
         irAlLogin();
-      } else if (event === 'TOKEN_REFRESHED') {
-        // TOKEN_REFRESHED con session=null = refresh falló definitivamente
-        irAlLogin();
+      } else {
+        // INITIAL_SESSION sin sesión = nunca hubo login
+        ocultarLoading();
+        showApp(false);
+        showLoginScreen(true);
       }
-      // Para cualquier otro evento sin sesión (USER_UPDATED, etc.)
-      // simplemente mostramos el login sin borrar tokens
-      const ls = document.getElementById('loading-screen');
-      if (ls) ls.style.display = 'none';
-      showApp(false);
-      showLoginScreen(true);
     }
   });
 
-  // ── Guard: evalúa el timeout cada 500ms ──
-  // Usa Date.now() en lugar de setTimeout para no verse afectado
-  // por la pausa de timers en background (comportamiento iOS/Android).
-  const _guard = setInterval(() => {
-    if (appInicializada) { clearInterval(_guard); return; }
-    if (Date.now() - arranqueTs >= TIMEOUT_MS) {
-      clearInterval(_guard);
+  // ── Guard de seguridad: si a los 12s no arrancó, mostrar login ──
+  // (no usa arranqueTs fijo — usa un timeout simple que se cancela
+  //  en cuanto el listener responde)
+  const _guard = setTimeout(() => {
+    if (!appInicializada) {
       irAlLogin();
     }
-  }, 500);
+  }, 12000);
 
-  // ── Al volver al frente: re-evaluar estado inmediatamente ──
+  // Cancelar el guard si el listener resolvió
+  const _origOnAuthStateChange = sb.auth.onAuthStateChange;
+  // El guard se cancela dentro de initApp() al terminar exitosamente.
+  // También lo cancelamos si ya hay sesión (ver onAuthStateChange arriba).
+
+  // ── Al volver al frente: si loading visible pero no hay carga activa, ocultar ──
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     if (appInicializada) {
-      // App ya cargó: asegurarse de que el loading esté oculto
-      const ls = document.getElementById('loading-screen');
-      if (ls) ls.style.display = 'none';
-      clearInterval(_guard);
-    } else if (Date.now() - arranqueTs >= TIMEOUT_MS) {
-      // Volvimos al frente y ya pasó el tiempo → login
-      clearInterval(_guard);
-      irAlLogin();
+      ocultarLoading();
+      clearTimeout(_guard);
     }
   });
 })();

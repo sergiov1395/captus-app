@@ -1095,8 +1095,10 @@ html.dark button[onclick="exportReportePDF()"] {
 <!-- ══════════════════════════════════════════════════════════ -->
 <div class="app">
 
+<!-- ══ MODIFICADO v4: arranca oculto (display:none). El JS lo muestra
+     solo durante initApp(). Así nunca queda colgado en móvil. ══ -->
 <div id="loading-screen" style="
-  display:flex;position:fixed;inset:0;z-index:9999;
+  display:none;position:fixed;inset:0;z-index:9999;
   background:var(--bg);flex-direction:column;
   align-items:center;justify-content:center;gap:16px;">
   <div style="font-size:2.5rem;">&#x26A1;</div>
