@@ -5938,99 +5938,87 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
 // ══════════════════════════════════════════════════════
 // ▼▼▼ NUEVO: ARRANQUE CON GUARD DE SESIÓN ▼▼▼
 // ══════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════
 // ▼▼▼ ARRANQUE CON GUARD DE SESIÓN ▼▼▼
-// MODIFICADO v2: timeout basado en Date.now() para funcionar
-//   correctamente en móvil (los setTimeout se pausan en background)
+// MODIFICADO v3: el listener se registra PRIMERO (sin await previo)
+//   para que funcione en móvil con red lenta.
+//   La limpieza de tokens se hace DENTRO del callback, no antes.
 // ══════════════════════════════════════════════════════
-(async () => {
+(() => {
   showApp(false);
   showLoginScreen(false);
 
-  // ── Limpiar tokens corruptos ANTES de que Supabase intente usarlos ──
-  try {
-    const { data, error } = await sb.auth.getSession();
-    if (error || !data.session) {
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('sb-'))
-        .forEach(k => localStorage.removeItem(k));
-    }
-  } catch (e) {
-    Object.keys(localStorage)
-      .filter(k => k.startsWith('sb-'))
-      .forEach(k => localStorage.removeItem(k));
-  }
-
   let appInicializada = false;
+  const arranqueTs    = Date.now();
+  const TIMEOUT_MS    = 10000; // 10 segundos
 
-  // ── NUEVO v2: guardamos el timestamp de inicio para el timeout real ──
-  const arranqueTs = Date.now();
-  const TIMEOUT_MS = 8000; // 8 segundos
-
-  // ── NUEVO v2: función que evalúa si ya pasó el timeout ──
-  function verificarTimeout() {
-    if (appInicializada) return; // ya arrancó, no hacer nada
-    if (Date.now() - arranqueTs >= TIMEOUT_MS) {
-      // Tiempo agotado: limpiar y mostrar login
+  // ── Helper: limpiar tokens de Supabase en localStorage ──
+  function limpiarTokens() {
+    try {
       Object.keys(localStorage)
         .filter(k => k.startsWith('sb-'))
         .forEach(k => localStorage.removeItem(k));
-      showApp(false);
-      showLoginScreen(true);
-    }
+    } catch(e) { /* safari privado puede tirar error */ }
   }
 
+  // ── Helper: forzar pantalla de login ──
+  function irAlLogin() {
+    limpiarTokens();
+    showApp(false);
+    showLoginScreen(true);
+    const emailEl = document.getElementById('login-email');
+    const passEl  = document.getElementById('login-password');
+    const errorEl = document.getElementById('login-error');
+    if (emailEl)  emailEl.value         = '';
+    if (passEl)   passEl.value          = '';
+    if (errorEl)  errorEl.style.display = 'none';
+  }
+
+  // ── CRÍTICO: registrar el listener SIN ningún await previo ──
+  // Cualquier await antes de esto retrasa el registro y en móvil
+  // Supabase puede disparar INITIAL_SESSION antes de que estemos escuchando.
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
       showLoginScreen(false);
       showApp(true);
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !appInicializada) {
         appInicializada = true;
+        clearInterval(_guard);
         await initApp();
       }
     } else {
-      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
-        Object.keys(localStorage)
-          .filter(k => k.startsWith('sb-'))
-          .forEach(k => localStorage.removeItem(k));
+      // Token expirado o cierre de sesión
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+        irAlLogin();
       }
-      showApp(false);
-      showLoginScreen(true);
-      const emailEl = document.getElementById('login-email');
-      const passEl  = document.getElementById('login-password');
-      const errorEl = document.getElementById('login-error');
-      if (emailEl)  emailEl.value         = '';
-      if (passEl)   passEl.value          = '';
-      if (errorEl)  errorEl.style.display = 'none';
     }
   });
 
-  // ── NUEVO v2: timeout con setInterval (sigue corriendo aunque el tab
-  //    esté en background, porque se re-evalúa al volver al frente) ──
+  // ── Guard: evalúa el timeout cada 500ms ──
+  // Usa Date.now() en lugar de setTimeout para no verse afectado
+  // por la pausa de timers en background (comportamiento iOS/Android).
   const _guard = setInterval(() => {
     if (appInicializada) { clearInterval(_guard); return; }
-    verificarTimeout();
+    if (Date.now() - arranqueTs >= TIMEOUT_MS) {
+      clearInterval(_guard);
+      irAlLogin();
+    }
   }, 500);
 
-  // ── NUEVO v2: al volver al frente, verificar timeout Y ocultar loading ──
+  // ── Al volver al frente: re-evaluar estado inmediatamente ──
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     if (appInicializada) {
+      // App ya cargó: asegurarse de que el loading esté oculto
       const ls = document.getElementById('loading-screen');
       if (ls) ls.style.display = 'none';
       clearInterval(_guard);
-      return;
+    } else if (Date.now() - arranqueTs >= TIMEOUT_MS) {
+      // Volvimos al frente y ya pasó el tiempo → login
+      clearInterval(_guard);
+      irAlLogin();
     }
-    // Si volvemos al frente y ya pasaron 8s → mandar al login
-    verificarTimeout();
   });
 })();
-// ══════════════════════════════════════════════════════
-// ▲▲▲ FIN ARRANQUE ▲▲▲
-// ══════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════
-// ▲▲▲ FIN ARRANQUE ▲▲▲
-// ══════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════
 // ▲▲▲ FIN ARRANQUE ▲▲▲
 // ══════════════════════════════════════════════════════
