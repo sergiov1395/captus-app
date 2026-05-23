@@ -5961,8 +5961,13 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
   }
 
   // ── Helper: forzar pantalla de login ──
+  // MODIFICADO v3.1: también oculta el loading-screen que tiene z-index:9999
   function irAlLogin() {
     limpiarTokens();
+    // ── AGREGADO: ocultar loading-screen antes de mostrar login ──
+    const ls = document.getElementById('loading-screen');
+    if (ls) ls.style.display = 'none';
+    // ── FIN AGREGADO ──
     showApp(false);
     showLoginScreen(true);
     const emailEl = document.getElementById('login-email');
@@ -5987,9 +5992,21 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
       }
     } else {
       // Token expirado o cierre de sesión
-      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+      // MODIFICADO v3.1: quitamos INITIAL_SESSION del else — ese evento
+      // con session=null solo ocurre cuando nunca hubo sesión (primer uso).
+      // Incluirlo acá borraba tokens válidos que aún podían refrescarse.
+      if (event === 'SIGNED_OUT') {
+        irAlLogin();
+      } else if (event === 'TOKEN_REFRESHED') {
+        // TOKEN_REFRESHED con session=null = refresh falló definitivamente
         irAlLogin();
       }
+      // Para cualquier otro evento sin sesión (USER_UPDATED, etc.)
+      // simplemente mostramos el login sin borrar tokens
+      const ls = document.getElementById('loading-screen');
+      if (ls) ls.style.display = 'none';
+      showApp(false);
+      showLoginScreen(true);
     }
   });
 
