@@ -5,19 +5,14 @@
 const SUPA_URL = 'https://ykglfcjxbgrutpyrjrzv.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZ2xmY2p4YmdydXRweXJqcnp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTk1ODAsImV4cCI6MjA5NDMzNTU4MH0.lZP5ZecJifxWYX9eDK08i2vEgJ8gnmXEyAFgoD4xTKI';
 
-// ── MODIFICADO: función para crear un cliente fresco sin lock bloqueado ──
-function crearClienteSupa() {
-  return supabase.createClient(SUPA_URL, SUPA_KEY, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-      // lock timeout corto para evitar bloqueos eternos
-      lockAcquireTimeout: 5000
-    }
-  });
-}
-let sb = crearClienteSupa();
+// ── Cliente único — nunca se recrea, nunca se duplica ──
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  }
+});
 
 // ══════════════════════════════════════════════════════
 // ▼▼▼ NUEVO: SISTEMA DE LOGIN ▼▼▼
@@ -621,6 +616,8 @@ const [
 
   // ── NUEVO: verificar si ya hay una caja abierta hoy ──
   await verificarCajaHoy();
+  // ── AGREGADO SINCRONIZACIÓN: escuchar cambios en caja desde otros dispositivos ──
+  suscribirCambiosCaja();
 
   // ── AGREGADO: mostrar FAB del carrito si estamos en móvil ──
   updateCartFab();
@@ -1921,13 +1918,35 @@ function changeQty(id,d){
   renderCart(); renderPosGrid();
 }
 async function finalizarVenta(){
-  // ── NUEVO: bloquear venta si no hay caja abierta ──
+  // ── MODIFICADO: chequeo en tiempo real de caja (multi-dispositivo) ──
+  // Primero chequeo rápido en memoria
   if(!turnoActual){
     showToast('🔴 Abrí la caja antes de registrar ventas');
     document.getElementById('caja-apertura-overlay').classList.add('open');
     setTimeout(()=>document.getElementById('caja-monto-inicial').focus(),200);
     return;
   }
+  // Segundo chequeo: verificar en Supabase que el turno sigue abierto
+  // (por si fue cerrado desde otro dispositivo y Realtime no sincronizó aún)
+  try {
+    const {data: turnoFresco, error: errTurno} = await sb
+      .from('turnos_caja')
+      .select('id, estado')
+      .eq('id', turnoActual.id)
+      .maybeSingle();
+
+    if (errTurno || !turnoFresco || turnoFresco.estado !== 'abierta') {
+      // La caja fue cerrada desde otro dispositivo — sincronizar estado local
+      turnoActual = null;
+      actualizarIndicadorCaja();
+      showToast('🔒 La caja fue cerrada desde otro dispositivo. No se puede registrar la venta.');
+      return;
+    }
+  } catch(e) {
+    // Si hay error de conexión, continuar con el chequeo local
+    console.warn('No se pudo verificar estado de caja en Supabase:', e);
+  }
+  // ── FIN MODIFICADO ──
   if(!cart.length){showToast('Carrito vacío');return;}
   // ── MODIFICADO: el total ya descuenta el descuento aplicado ──
   const subtotal=cart.reduce((s,c)=>s+c.precio*c.qty,0);
@@ -3082,6 +3101,63 @@ async function confirmarCierreCaja(){
     showToast('⚠️ Error al cerrar la caja.');
   }
 }
+
+// ══════════════════════════════════════════════════════════
+// SINCRONIZACIÓN EN TIEMPO REAL DE CAJA — AGREGADO
+// Escucha cambios en turnos_caja desde Supabase Realtime.
+// Si otro dispositivo cierra la caja, esta pestaña se entera
+// y actualiza turnoActual sin necesidad de recargar la página.
+// ══════════════════════════════════════════════════════════
+function suscribirCambiosCaja() {
+  // Evitar doble suscripción si la función se llama más de una vez
+  if (window._cajaSuscripcion) {
+    sb.removeChannel(window._cajaSuscripcion);
+    window._cajaSuscripcion = null;
+  }
+
+  window._cajaSuscripcion = sb
+    .channel('sync-turnos-caja')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'turnos_caja',
+        filter: `negocio_id=eq.${negocioId}`
+      },
+      (payload) => {
+        const registro = payload.new;
+
+        // ── Caso 1: la caja que teníamos como abierta fue cerrada en otro dispositivo ──
+        if (
+          turnoActual &&
+          registro.id === turnoActual.id &&
+          registro.estado === 'cerrada'
+        ) {
+          turnoActual = null;
+          actualizarIndicadorCaja();
+          renderBalance();
+          showToast('🔒 Caja cerrada desde otro dispositivo');
+        }
+
+        // ── Caso 2: se abrió una caja nueva en otro dispositivo (ej: celular abrió caja) ──
+        if (
+          !turnoActual &&
+          registro.estado === 'abierta' &&
+          registro.negocio_id === negocioId
+        ) {
+          turnoActual = registro;
+          actualizarIndicadorCaja();
+          showToast('🟢 Caja abierta desde otro dispositivo');
+        }
+      }
+    )
+    .subscribe();
+}
+// ══════════════════════════════════════════════════════════
+// FIN SINCRONIZACIÓN EN TIEMPO REAL DE CAJA
+// ══════════════════════════════════════════════════════════
+
 // ── NUEVO: función de reapertura manual ──
 function reabrirCaja(){
   document.getElementById('caja-monto-inicial').value = '';
@@ -5979,16 +6055,64 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
 // ▼▼▼ ARRANQUE — versión final limpia ▼▼▼
 // ══════════════════════════════════════════════════════
 (() => {
-  // ── CLAVE: recrear el cliente para liberar cualquier lock bloqueado ──
-  // Cuando una operación anterior queda colgada (cierre de caja, etc.),
-  // el cliente de Supabase queda con un lock interno que congela todas
-  // las llamadas futuras. Recrearlo libera ese lock.
-  sb = crearClienteSupa();
+  // ── AGREGADO: bloquear segunda pestaña con BroadcastChannel ──
+  try {
+    const _ch = new BroadcastChannel('captus-tab');
+    let bloqueado = false;
 
-  showApp(false);
-  showLoginScreen(false);
+    const _listener = (e) => {
+      if (e.data === 'ya-activa' && !bloqueado) {
+        bloqueado = true;
+        document.body.innerHTML = `
+          <div style="
+            position:fixed;inset:0;
+            background:#F4F3EE;
+            display:flex;flex-direction:column;
+            align-items:center;justify-content:center;
+            gap:16px;font-family:'Plus Jakarta Sans',sans-serif;
+            text-align:center;padding:24px;
+          ">
+            <div style="font-size:3rem;">⚡</div>
+            <div style="font-weight:800;font-size:1.2rem;color:#18181B;">Captus ya está abierto</div>
+            <div style="font-size:.88rem;color:#52525B;max-width:300px;line-height:1.6;">
+              Ya tenés Captus abierto en otra pestaña de este navegador.
+            </div>
+            <button onclick="window.close();" style="
+              margin-top:8px;padding:11px 24px;
+              background:#18181B;color:white;
+              border:none;border-radius:100px;
+              font-weight:700;font-size:.88rem;cursor:pointer;
+            ">Cerrar esta pestaña</button>
+          </div>`;
+      }
+      if (e.data === 'hay-alguien') {
+        _ch.postMessage('ya-activa');
+      }
+    };
 
-  let cargando = false; // true mientras initApp() está ejecutándose
+    _ch.addEventListener('message', _listener);
+    _ch.postMessage('hay-alguien');
+
+    setTimeout(() => {
+      _ch.removeEventListener('message', _listener);
+      if (bloqueado) return; // ya bloqueado, no arrancar
+      // Nadie respondió → somos la pestaña primaria
+      _ch.onmessage = (e) => {
+        if (e.data === 'hay-alguien') _ch.postMessage('ya-activa');
+      };
+      arrancarApp();
+    }, 300);
+
+  } catch(e) {
+    // BroadcastChannel no disponible → arrancar igual
+    arrancarApp();
+  }
+
+  function arrancarApp() {
+    showApp(false);
+    showLoginScreen(false);
+
+    let cargando = false; // true mientras initApp() está ejecutándose
 
   function ocultarLoading() {
     const ls = document.getElementById('loading-screen');
@@ -6055,6 +6179,7 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
     if (document.visibilityState !== 'visible') return;
     if (!cargando) ocultarLoading();
   });
+  } // cierre de arrancarApp()
 })();
 // ══════════════════════════════════════════════════════
 // ▲▲▲ FIN ARRANQUE ▲▲▲
