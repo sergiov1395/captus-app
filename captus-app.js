@@ -1948,7 +1948,10 @@ async function deleteTask(id){
 }
 function updateBadge(){
   const b=document.getElementById('nb-tareas'),c=DB.tareas.length;
-  b.textContent=c; b.style.display=c>0?'':'none';
+  if(b){ b.textContent=c; b.style.display=c>0?'':'none'; }
+  // ══ MODIFICADO 3B: sincronizar badge del modal Más ══
+  const bm=document.getElementById('nb-tareas-modal');
+  if(bm){ bm.textContent=c; bm.style.display=c>0?'':'none'; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2074,7 +2077,7 @@ function renderPosGrid(){
       <div class="pi-name">${p.nombre}</div>
       ${codigoBadge}
       <div class="pi-price">${fmtPrecioProducto(p)}</div>
-      ${p.tipo==='producto'?`<div class="pi-stock">${oos?'<span style="color:var(--red);font-weight:700;">Sin stock</span>':p.stock<=2?`<span style="font-weight:700;color:#991B1B;">⚠️ Stock: ${p.stock}</span>`:p.stock<=4?`<span style="font-weight:700;color:#92400E;">⚠️ Stock: ${p.stock}</span>`:`<span style="color:var(--ink3);">Stock: ${p.stock}</span>`}</div>`:`<div style="margin-top:4px;"><span class="tag tag-purple" style="font-size:.62rem;">Servicio</span></div>`}
+      ${p.tipo==='producto'?`<div class="pi-stock">${oos?'<span style="color:var(--red);font-weight:700;">Sin stock</span>':p.stock<=4?`<span style="font-weight:700;color:var(--amber);">⚠️ ${p.stock}</span>`:''}</div>`:`<div style="margin-top:4px;"><span class="tag tag-purple" style="font-size:.62rem;">Servicio</span></div>`}
       ${ic?`<div class="cart-badge">${ic.qty}</div>`:''}
     </div>`;
   }).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><div class="empty-text">Sin resultados</div></div>`;
@@ -6193,14 +6196,17 @@ let ccActual = null;        // cuenta corriente abierta en el modal
 // ── Actualiza el badge rojo del nav con cantidad de deudas pendientes ──
 function updateBadgeFiado(){
   const pendientes = DB.cuentasCorrientes.filter(c => c.estado === 'pendiente');
-  const badge = document.getElementById('nb-fiado');
-  if(!badge) return;
-  if(pendientes.length > 0){
-    badge.textContent = pendientes.length;
-    badge.style.display = '';
-  } else {
-    badge.style.display = 'none';
-  }
+  // ══ MODIFICADO 3B: sincronizar badge del modal Más ══
+  [document.getElementById('nb-fiado'), document.getElementById('nb-fiado-modal')]
+    .forEach(badge => {
+      if(!badge) return;
+      if(pendientes.length > 0){
+        badge.textContent = pendientes.length;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    });
 }
 
 // ── Cambia la pestaña activa y re-renderiza ──
