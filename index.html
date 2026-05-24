@@ -1626,29 +1626,105 @@ html.dark button[onclick="exportReportePDF()"] {
 <!-- ══════════════════════════════════════════════════════ -->
 <!-- ══ MODIFICADO 3A: modal Más completo con secciones secundarias ══ -->
 <div class="mas-modal-overlay" id="mas-modal-overlay" onclick="if(event.target===this)closeMasModal()">
+  <!-- ══ MODIFICADO 3B: cuadrícula sin títulos ══ -->
   <div class="mas-modal">
-    <!-- Secciones secundarias de navegación -->
-    <div class="mas-modal-title">Secciones</div>
-    <div class="nav-item" onclick="closeMasModal();navTo('tareas')"><span class="nav-icon">✅</span>Tareas <span class="nav-badge" id="nb-tareas-modal" style="display:none;position:static;margin-left:4px;">0</span></div>
-    <div class="nav-item" onclick="closeMasModal();navTo('clientes')"><span class="nav-icon">👥</span>Clientes</div>
-    <div class="nav-item" onclick="closeMasModal();navTo('fiado')"><span class="nav-icon">💳</span>Fiado / Cuentas <span class="nav-badge" id="nb-fiado-modal" style="display:none;position:static;margin-left:4px;">0</span></div>
-    <div class="nav-item" onclick="closeMasModal();navTo('calc')"><span class="nav-icon">🧮</span>Presupuestador</div>
-    <div class="nav-item" onclick="closeMasModal();navTo('movimientos')"><span class="nav-icon">📦</span>Movimientos</div>
-    <!-- Configuración y cuenta -->
-    <div class="mas-modal-title" style="margin-top:8px;">Mi cuenta</div>
-    <div class="nav-item" onclick="closeMasModal();navTo('plan')"><span class="nav-icon">⭐</span>Mi Plan</div>
-    <div class="nav-item" onclick="closeMasModal();navTo('config')"><span class="nav-icon">⚙️</span>Configuración</div>
-    <div class="dark-toggle" onclick="toggleDarkMode()" title="Modo oscuro" style="display:flex;align-items:center;gap:10px;color:white;cursor:pointer;padding:10px 12px;">
-      <span class="nav-icon" id="dark-icon-modal">🌙</span>
-      <span>Modo oscuro</span>
-      <div class="dark-toggle-track" style="margin-left:auto;">
-        <div class="dark-toggle-thumb"></div>
-      </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0 12px;">
+
+      <button onclick="closeMasModal();navTo('tareas')"
+        style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:5px;padding:14px 8px;background:rgba(255,255,255,.07);border:none;
+          border-radius:12px;cursor:pointer;color:white;font-family:var(--font);
+          font-size:.72rem;font-weight:600;position:relative;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.13)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">
+        <span style="font-size:1.5rem;">✅</span>Tareas
+        <span id="nb-tareas-modal" style="display:none;position:absolute;top:6px;right:6px;
+          background:var(--green);color:white;border-radius:100px;
+          padding:1px 6px;font-size:.55rem;font-weight:700;">0</span>
+      </button>
+
+      <button onclick="closeMasModal();navTo('clientes')"
+        style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:5px;padding:14px 8px;background:rgba(255,255,255,.07);border:none;
+          border-radius:12px;cursor:pointer;color:white;font-family:var(--font);
+          font-size:.72rem;font-weight:600;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.13)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">
+        <span style="font-size:1.5rem;">👥</span>Clientes
+      </button>
+
+      <button onclick="closeMasModal();navTo('fiado')"
+        style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:5px;padding:14px 8px;background:rgba(255,255,255,.07);border:none;
+          border-radius:12px;cursor:pointer;color:white;font-family:var(--font);
+          font-size:.72rem;font-weight:600;position:relative;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.13)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">
+        <span style="font-size:1.5rem;">💳</span>Fiado
+        <span id="nb-fiado-modal" style="display:none;position:absolute;top:6px;right:6px;
+          background:var(--green);color:white;border-radius:100px;
+          padding:1px 6px;font-size:.55rem;font-weight:700;">0</span>
+      </button>
+
+      <button onclick="closeMasModal();navTo('calc')"
+        style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:5px;padding:14px 8px;background:rgba(255,255,255,.07);border:none;
+          border-radius:12px;cursor:pointer;color:white;font-family:var(--font);
+          font-size:.72rem;font-weight:600;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.13)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">
+        <span style="font-size:1.5rem;">🧮</span>Presupuestador
+      </button>
+
+      <button onclick="closeMasModal();navTo('movimientos')"
+        style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:5px;padding:14px 8px;background:rgba(255,255,255,.07);border:none;
+          border-radius:12px;cursor:pointer;color:white;font-family:var(--font);
+          font-size:.72rem;font-weight:600;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.13)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">
+        <span style="font-size:1.5rem;">📦</span>Movimientos
+      </button>
+
+      <button onclick="closeMasModal();navTo('plan')"
+        style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:5px;padding:14px 8px;background:rgba(255,255,255,.07);border:none;
+          border-radius:12px;cursor:pointer;color:white;font-family:var(--font);
+          font-size:.72rem;font-weight:600;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.13)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">
+        <span style="font-size:1.5rem;">⭐</span>Mi Plan
+      </button>
+
+      <button onclick="closeMasModal();navTo('config')"
+        style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:5px;padding:14px 8px;background:rgba(255,255,255,.07);border:none;
+          border-radius:12px;cursor:pointer;color:white;font-family:var(--font);
+          font-size:.72rem;font-weight:600;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.13)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">
+        <span style="font-size:1.5rem;">⚙️</span>Configuración
+      </button>
+
     </div>
-    <button onclick="closeMasModal();doLogout()" class="btn btn-ghost" style="opacity:.75;">
-      <span>↪</span> Cerrar sesión
-    </button>
+
+    <div style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-direction:column;gap:2px;">
+      <div class="dark-toggle" onclick="toggleDarkMode()" title="Modo oscuro"
+        style="display:flex;align-items:center;gap:10px;color:white;cursor:pointer;padding:10px 12px;">
+        <span class="nav-icon" id="dark-icon-modal">🌙</span>
+        <span>Modo oscuro</span>
+        <div class="dark-toggle-track" style="margin-left:auto;">
+          <div class="dark-toggle-thumb"></div>
+        </div>
+      </div>
+      <button onclick="closeMasModal();doLogout()" class="btn btn-ghost" style="opacity:.75;">
+        <span>↪</span> Cerrar sesión
+      </button>
+    </div>
+
   </div>
+  <!-- ══ FIN MODIFICADO 3B ══ -->
 </div>
 <!-- ══ FIN MODIFICADO 3A ══ -->
 <!-- ══ FIN MODAL MÁS ══ -->
