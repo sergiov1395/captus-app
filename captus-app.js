@@ -6270,9 +6270,11 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
         const ls = document.getElementById('loading-screen');
         if (ls) ls.style.display = 'flex';
         try {
+          console.log('⏱ Llamando initApp...'); // ── DIAGNÓSTICO ──
           await initApp();
         } catch(e) {
           console.error('initApp falló:', e);
+          console.error('Detalle:', JSON.stringify(e)); // ── DIAGNÓSTICO ──
         } finally {
           cargando = false;
         }
