@@ -379,6 +379,59 @@ html.dark .cart-footer{background:var(--bg);}
   color: #ffffff !important;
 }
 /* ══ FIN AGREGADO ══ */
+
+/* ══ AGREGADO: fix modales apertura/cierre caja en modo oscuro móvil ══ */
+html.dark #caja-apertura-overlay .modal,
+html.dark #caja-cierre-overlay .modal {
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+}
+
+html.dark #caja-apertura-overlay .modal p,
+html.dark #caja-apertura-overlay .modal label,
+html.dark #caja-apertura-overlay .modal .modal-title,
+html.dark #caja-cierre-overlay .modal p,
+html.dark #caja-cierre-overlay .modal label,
+html.dark #caja-cierre-overlay .modal .modal-title {
+  color: var(--ink) !important;
+}
+
+html.dark #caja-apertura-overlay .modal input,
+html.dark #caja-cierre-overlay .modal input {
+  background: var(--surface2) !important;
+  color: var(--ink) !important;
+  border-color: var(--border) !important;
+}
+
+html.dark #caja-apertura-overlay .modal input::placeholder,
+html.dark #caja-cierre-overlay .modal input::placeholder {
+  color: var(--ink3) !important;
+}
+
+/* Resumen del turno en cierre de caja */
+html.dark #caja-cierre-overlay [style*="background:var(--surface2)"] {
+  background: var(--surface2) !important;
+}
+
+html.dark #cierre-monto-inicial,
+html.dark #cierre-total-ventas,
+html.dark #cierre-efectivo,
+html.dark #cierre-otros,
+html.dark #cierre-gastos,
+html.dark #cierre-esperado {
+  color: inherit;
+}
+
+html.dark #caja-cierre-overlay .modal [style*="color:var(--ink3)"] {
+  color: var(--ink3) !important;
+}
+
+/* overlay backdrop — asegura que se vea bien en ambos modos */
+html.dark #caja-apertura-overlay,
+html.dark #caja-cierre-overlay {
+  background: rgba(0, 0, 0, 0.65) !important;
+}
+/* ══ FIN AGREGADO: fix modales caja ══ */
 html.dark .modal-close{background:#2a2a35;color:var(--ink);}
 html.dark .modal-close:hover{background:var(--border);}
 
