@@ -1243,9 +1243,12 @@ html.dark button[onclick="exportReportePDF()"] {
   <!-- Tareas incluye botón Historial, nueva sección         -->
   <!-- Movimientos. Inicio eliminado, arranca en Vender.     -->
   <!-- ══════════════════════════════════════════════════════ -->
+  <!-- ══ AGREGADO: nav-inicio restaurado como pantalla de arranque ══ -->
   <div class="sidebar-section">
-    <!-- ── ELIMINADO: nav-inicio ── -->
-    <div class="nav-item active" id="nav-pos" onclick="navTo('pos')"><span class="nav-icon">&#x1F6D2;</span>Vender</div>
+    <div class="nav-item active" id="nav-inicio" onclick="navTo('inicio')"><span class="nav-icon">🏠</span>Inicio</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="nav-item" id="nav-pos" onclick="navTo('pos')"><span class="nav-icon">&#x1F6D2;</span>Vender</div>
     <!-- ── MODIFICADO: Tareas ahora tiene botón Historial dentro ── -->
     <div class="nav-item" id="nav-tareas" onclick="navTo('tareas')"><span class="nav-icon">&#x2705;</span>Tareas <span class="nav-badge" id="nb-tareas" style="display:none">0</span></div>
   </div>
@@ -1302,15 +1305,21 @@ html.dark button[onclick="exportReportePDF()"] {
 <main class="main">
 
 <!-- ── MODIFICADO: inicio ya no es la pantalla activa al arrancar ── -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PANTALLA INICIO — REDISEÑADA CON EMPTY STATES         -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div class="screen" id="screen-inicio">
-<div class="topbar">
-    <div><div class="topbar-title" id="home-title">Buenos días &#x1F44B;</div><div class="topbar-sub" id="home-sub">Mi Negocio</div></div>
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="home-title">Buenos días 👋</div>
+      <div class="topbar-sub" id="home-sub">Mi Negocio</div>
+    </div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost btn-sm" onclick="navTo('pos')">&#x1F6D2; Nueva venta</button>
-      <button class="btn btn-ghost btn-sm" onclick="openGastoModal()">&#x1F4B8; Gasto</button>
+      <button class="btn btn-ghost btn-sm" onclick="navTo('pos')">🛒 Nueva venta</button>
+      <button class="btn btn-ghost btn-sm" onclick="openGastoModal()">💸 Gasto</button>
       <button class="btn btn-primary btn-sm" onclick="navTo('tareas');setTimeout(openTaskModal,80)">+ Tarea</button>
     </div>
-    <!-- BÚSQUEDA GLOBAL MÓVIL — solo visible en pantallas pequeñas -->
+    <!-- BÚSQUEDA GLOBAL MÓVIL -->
     <div class="mobile-search-bar" style="display:none;">
       <span>🔍</span>
       <input type="text"
@@ -1321,26 +1330,65 @@ html.dark button[onclick="exportReportePDF()"] {
       <button onclick="this.previousElementSibling.value=''; globalSearch(''); clearGsearch();">✕</button>
     </div>
   </div>
-  <div class="content">
-    <div class="grid-4" style="margin-bottom:22px;">
-      <div class="stat-card"><div class="sc-label">Caja del día</div><div class="sc-val" id="h-caja">Gs 0</div><div class="sc-sub" id="h-caja-sub">0 ventas</div></div>
-      <div class="stat-card"><div class="sc-label">Ingresos hoy</div><div class="sc-val" style="color:var(--green)" id="h-ing">Gs 0</div></div>
-      <div class="stat-card"><div class="sc-label">Gastos hoy</div><div class="sc-val" style="color:var(--red)" id="h-gst">Gs 0</div></div>
-      <div class="stat-card"><div class="sc-label">Tareas pendientes</div><div class="sc-val" id="h-tasks">0</div><div class="sc-sub" id="h-tasks-sub"></div></div>
+
+  <div class="content" style="max-width:960px;">
+
+    <!-- ══ NUEVO: KPIs del día — modo con datos o empty state ══ -->
+    <div id="home-kpis-wrap" style="margin-bottom:20px;"></div>
+
+    <!-- ══ NUEVO: Alertas activas (stock bajo, tareas vencidas, fiado) ══ -->
+    <div id="home-alertas-wrap" style="margin-bottom:20px;"></div>
+
+    <!-- ══ NUEVO: Accesos rápidos — SIEMPRE visibles ══ -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;">⚡ Acciones rápidas</div>
+      <div class="grid-3" id="home-acciones-grid">
+        <button onclick="navTo('pos')"
+          style="background:var(--green);color:white;border:none;border-radius:var(--r);padding:18px 14px;cursor:pointer;font-family:var(--font);text-align:left;display:flex;flex-direction:column;gap:6px;transition:opacity .15s;box-shadow:var(--shadow);"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          <span style="font-size:1.5rem;">🛒</span>
+          <span style="font-weight:800;font-size:.95rem;">Nueva venta</span>
+          <span style="font-size:.75rem;opacity:.8;">Abrí el punto de venta</span>
+        </button>
+        <button onclick="openGastoModal()"
+          style="background:var(--red-l);color:var(--red);border:1.5px solid var(--border);border-radius:var(--r);padding:18px 14px;cursor:pointer;font-family:var(--font);text-align:left;display:flex;flex-direction:column;gap:6px;transition:opacity .15s;box-shadow:var(--shadow);"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          <span style="font-size:1.5rem;">💸</span>
+          <span style="font-weight:800;font-size:.95rem;">Registrar gasto</span>
+          <span style="font-size:.75rem;opacity:.7;">Anotá un egreso del día</span>
+        </button>
+        <button onclick="navTo('tareas');setTimeout(openTaskModal,80)"
+          style="background:var(--blue-l);color:var(--blue);border:1.5px solid var(--border);border-radius:var(--r);padding:18px 14px;cursor:pointer;font-family:var(--font);text-align:left;display:flex;flex-direction:column;gap:6px;transition:opacity .15s;box-shadow:var(--shadow);"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          <span style="font-size:1.5rem;">📋</span>
+          <span style="font-weight:800;font-size:.95rem;">Nueva tarea</span>
+          <span style="font-size:.75rem;opacity:.7;">Agendá un recordatorio</span>
+        </button>
+      </div>
     </div>
+
+    <!-- ══ NUEVO: Últimas ventas + Próximas tareas ══ -->
     <div class="grid-2">
-      <!-- ── AGREGADO: banner stock crítico ── -->
-<div id="home-stock-banner" style="display:none;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:12px;padding:14px 16px;margin-bottom:16px;"></div>
-<!-- ── FIN AGREGADO ── -->
-      <div class="card"><div class="card-title">&#x1F6D2; Últimas ventas</div><div id="home-ventas-list"></div></div>
-      <div class="card"><div class="card-title">&#x2705; Próximas tareas</div><div id="home-tareas-list"></div></div>
+      <div class="card">
+        <div class="card-title">🛒 Últimas ventas</div>
+        <div id="home-ventas-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">✅ Próximas tareas</div>
+        <div id="home-tareas-list"></div>
+      </div>
     </div>
+
   </div>
 </div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN PANTALLA INICIO                                   -->
+<!-- ══════════════════════════════════════════════════════ -->
 
 <!-- ── MODIFICADO: botón renombrado a "Registrar gasto" y TC movido al topbar ── -->
 <!-- ── MODIFICADO: pos es ahora la pantalla activa al arrancar ── -->
-<div class="screen active" id="screen-pos">
+<!-- ══ MODIFICADO: pos ya no es la pantalla activa al arrancar, inicio lo es ══ -->
+<div class="screen" id="screen-pos">
   <div class="topbar">
     <div><div class="topbar-title">Punto de Venta</div><div class="topbar-sub">Clic en un producto para agregar al carrito</div></div>
     <div class="topbar-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1486,7 +1534,10 @@ html.dark button[onclick="exportReportePDF()"] {
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="mas-modal-overlay" id="mas-modal-overlay" onclick="if(event.target===this)closeMasModal()">
   <div class="mas-modal">
-    <div class="mas-modal-title">Opciones</div>
+    <div class="mas-modal-title">Más opciones</div>
+    <!-- ══ AGREGADO: Inicio en modal Más ══ -->
+    <div class="nav-item" onclick="closeMasModal();navTo('inicio')"><span class="nav-icon">🏠</span>Inicio</div>
+    <!-- ══ FIN AGREGADO ══ -->
     <div class="nav-item" onclick="closeMasModal();navTo('plan')"><span class="nav-icon">⭐</span>Mi Plan</div>
     <div class="nav-item" onclick="closeMasModal();navTo('config')"><span class="nav-icon">⚙️</span>Configuración</div>
     <div class="dark-toggle" onclick="toggleDarkMode()" title="Modo oscuro" style="display:flex;align-items:center;gap:10px;color:white;cursor:pointer;padding:10px 12px;">

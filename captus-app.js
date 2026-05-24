@@ -2322,84 +2322,220 @@ function printLast(){
 }
 
 // ═══ RENDERS ═══════════════════════════════
+// ══════════════════════════════════════════════════════════
+// PANTALLA INICIO — REDISEÑADA CON EMPTY STATES INTELIGENTES
+// ══════════════════════════════════════════════════════════
 function renderInicio(){
-  const today=new Date().toDateString();
-  const vH=DB.ventas.filter(v=>new Date(v.date).toDateString()===today);
-  const gH=DB.gastos.filter(g=>new Date(g.date).toDateString()===today);
-  const ing=vH.reduce((s,v)=>s+v.total,0),gst=gH.reduce((s,g)=>s+g.amount,0);
-  document.getElementById('h-caja').textContent=fmtGs(ing-gst);
-  document.getElementById('h-caja-sub').textContent=`${vH.length} venta${vH.length!==1?'s':''} hoy`;
-  document.getElementById('h-ing').textContent=fmtGs(ing);
-  document.getElementById('h-gst').textContent=fmtGs(gst);
-  document.getElementById('h-tasks').textContent=DB.tareas.length;
-  const ov=DB.tareas.filter(t=>t.date&&new Date(t.date+'T23:59:59')<new Date()).length;
-  document.getElementById('h-tasks-sub').textContent=ov>0?`${ov} vencida${ov!==1?'s':''} ⚠️`:'Al día ✓';
-  const cfg=DB.config;
-  document.getElementById('sb-biz-name').textContent=cfg.nombre||'Mi Negocio';
-  document.getElementById('sb-biz-type').textContent=cfg.tipo||'Negocio';
-  document.getElementById('home-sub').textContent=cfg.nombre||'Mi Negocio';
-  // ══ AGREGADO: logo negocio en sidebar ══
+  // ── Saludo dinámico y nombre del negocio ──
+  const cfg = DB.config;
+  document.getElementById('sb-biz-name').textContent = cfg.nombre || 'Mi Negocio';
+  document.getElementById('sb-biz-type').textContent = cfg.tipo || 'Negocio';
+  document.getElementById('home-sub').textContent = cfg.nombre || 'Mi Negocio';
   const sbImg = document.getElementById('sb-logo-img');
   const sbIni = document.getElementById('sb-logo-inicial');
   if(cfg.logoDataUrl){
-    sbImg.src = cfg.logoDataUrl;
-    sbImg.style.display = 'block';
-    sbIni.style.display = 'none';
+    sbImg.src = cfg.logoDataUrl; sbImg.style.display='block'; sbIni.style.display='none';
   } else {
-    sbImg.style.display = 'none';
-    sbIni.style.display = '';
-    sbIni.textContent = (cfg.nombre||'N').charAt(0).toUpperCase();
+    sbImg.style.display='none'; sbIni.style.display='';
+    sbIni.textContent=(cfg.nombre||'N').charAt(0).toUpperCase();
   }
-  // ══ FIN AGREGADO ══
-  const h=new Date().getHours();
-  document.getElementById('home-title').textContent=h<12?'Buenos días 👋':h<19?'Buenas tardes 👋':'Buenas noches 👋';
+  const h = new Date().getHours();
+  document.getElementById('home-title').textContent = h<12?'Buenos días 👋':h<19?'Buenas tardes 👋':'Buenas noches 👋';
 
-// ── AGREGADO: banner de stock crítico en inicio ──
-  const _criticos = DB.productos.filter(p => p.tipo !== 'servicio' && p.stock !== null && p.stock <= 4).sort((a,b) => a.stock - b.stock);
-  const _stockBanner = document.getElementById('home-stock-banner');
-  if(_stockBanner){
-    if(_criticos.length > 0){
-      _stockBanner.style.display = 'block';
-      _stockBanner.innerHTML = `
-        <div style="font-weight:800;font-size:.88rem;color:#92400E;margin-bottom:8px;">⚠️ ${_criticos.length} producto${_criticos.length!==1?'s':''} con stock bajo</div>
-        ${_criticos.map(p=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #FDE68A;">
-            <span style="font-size:.85rem;">${p.emoji||'📦'} ${p.nombre}</span>
-            <span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:100px;background:${p.stock===0?'#FEE2E2':'#FEF3C7'};color:${p.stock===0?'#991B1B':'#92400E'};">${p.stock===0?'🔴 Sin stock':'⚠️ '+p.stock+' u.'}</span>
-          </div>`).join('')}
-        <button onclick="navTo('productos')" style="margin-top:10px;font-size:.78rem;font-weight:700;background:none;border:1.5px solid #F59E0B;color:#92400E;padding:5px 14px;border-radius:100px;cursor:pointer;">Ver inventario →</button>`;
+  // ── Datos del día ──
+  const today = new Date().toDateString();
+  const vH  = DB.ventas.filter(v => new Date(v.date).toDateString()===today);
+  const gH  = DB.gastos.filter(g => new Date(g.date).toDateString()===today);
+  const ing = vH.reduce((s,v)=>s+v.total, 0);
+  const gst = gH.reduce((s,g)=>s+g.amount, 0);
+  const fiadoPendiente = DB.fiado ? DB.fiado.reduce((s,f)=>s+(f.saldo||0),0) : 0;
+
+  // ── BLOQUE KPIs: modo con datos vs. empty state ──
+  const kpisWrap = document.getElementById('home-kpis-wrap');
+  if(kpisWrap){
+    const sinActividad = !DB.ventas.length && !DB.gastos.length && !DB.productos.length;
+    if(sinActividad){
+      // USUARIO NUEVO: panel de bienvenida con pasos guiados
+      kpisWrap.innerHTML = `
+        <div style="background:linear-gradient(135deg,var(--green-l) 0%,var(--blue-l) 100%);
+          border:1.5px solid var(--border);border-radius:var(--r);padding:22px 24px;">
+          <div style="font-size:1.4rem;margin-bottom:6px;">🎉</div>
+          <div style="font-weight:800;font-size:1.05rem;margin-bottom:4px;">¡Bienvenido a Captus!</div>
+          <div style="font-size:.85rem;color:var(--ink2);margin-bottom:16px;line-height:1.6;">
+            Tu negocio está listo para arrancar. Seguí estos pasos para empezar:
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div onclick="navTo('productos')" style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1.5px solid var(--border);transition:box-shadow .15s;" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+              <span style="font-size:1.2rem;width:28px;text-align:center;">📦</span>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:.88rem;">Cargá tus productos o servicios</div>
+                <div style="font-size:.75rem;color:var(--ink3);">Así podés vender desde el punto de venta</div>
+              </div>
+              <span style="color:var(--ink3);font-size:.85rem;">→</span>
+            </div>
+            <div onclick="navTo('pos')" style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1.5px solid var(--border);transition:box-shadow .15s;" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+              <span style="font-size:1.2rem;width:28px;text-align:center;">🛒</span>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:.88rem;">Registrá tu primera venta</div>
+                <div style="font-size:.75rem;color:var(--ink3);">Abrí el punto de venta y empezá a cobrar</div>
+              </div>
+              <span style="color:var(--ink3);font-size:.85rem;">→</span>
+            </div>
+            <div onclick="navTo('config')" style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1.5px solid var(--border);transition:box-shadow .15s;" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+              <span style="font-size:1.2rem;width:28px;text-align:center;">⚙️</span>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:.88rem;">Configurá tu negocio</div>
+                <div style="font-size:.75rem;color:var(--ink3);">Nombre, moneda, logo y preferencias</div>
+              </div>
+              <span style="color:var(--ink3);font-size:.85rem;">→</span>
+            </div>
+          </div>
+        </div>`;
     } else {
-      _stockBanner.style.display = 'none';
+      // USUARIO CON DATOS: KPIs del día normales
+      kpisWrap.innerHTML = `
+        <div class="grid-4">
+          <div class="stat-card">
+            <div class="sc-label">Caja del día</div>
+            <div class="sc-val">${fmtGs(ing-gst)}</div>
+            <div class="sc-sub">${vH.length} venta${vH.length!==1?'s':''} hoy</div>
+          </div>
+          <div class="stat-card">
+            <div class="sc-label">Ingresos hoy</div>
+            <div class="sc-val" style="color:var(--green)">${fmtGs(ing)}</div>
+            <div class="sc-sub">${vH.length ? 'Efectivo + otros medios' : 'Sin ventas aún hoy'}</div>
+          </div>
+          <div class="stat-card">
+            <div class="sc-label">Gastos hoy</div>
+            <div class="sc-val" style="color:var(--red)">${fmtGs(gst)}</div>
+            <div class="sc-sub">${gH.length ? gH.length+' gasto'+(gH.length!==1?'s':'') : 'Sin gastos hoy'}</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer;" onclick="navTo('fiado')" title="Ver fiado pendiente">
+            <div class="sc-label">Fiado pendiente</div>
+            <div class="sc-val" style="color:${fiadoPendiente>0?'var(--amber)':'var(--ink)'}">${fmtGs(fiadoPendiente)}</div>
+            <div class="sc-sub">${fiadoPendiente>0?'Tapeá para cobrar':'Al día ✓'}</div>
+          </div>
+        </div>`;
     }
   }
-// ── FIN AGREGADO ──
 
-// ── MODIFICADO: filas de ventas ahora abren el modal de detalle al hacer clic ──
-  const vl=document.getElementById('home-ventas-list');
-  vl.innerHTML=!DB.ventas.length?`<div class="empty-state" style="padding:28px 0"><div class="empty-icon">🛒</div><div class="empty-text">Aún sin ventas.<br>¡Registrá la primera!</div></div>`:
-    DB.ventas.slice(0,6).map(v=>`<div class="list-row" onclick="openVentaDetail(${v.id})" style="cursor:pointer;" title="Ver detalle / anular venta">
-      <div class="row-icon" style="background:var(--green-l);">🛒</div>
-      <div class="row-body">
-        <div class="row-name">${v.clienteNombre||'Venta rápida'}</div>
-        <div class="row-sub">${v.items.map(i=>i.nombre).join(', ').substring(0,50)} · ${v.pago}</div>
-      </div>
-      <div class="row-right">
-        <div class="row-amount" style="color:var(--green)">+${fmtGs(v.total)}</div>
-        <div class="row-date">${timeAgo(v.date)}</div>
-        <!-- ── AGREGADO: indicador visual de acción disponible ── -->
-        <div style="font-size:.68rem;color:var(--ink3);margin-top:3px;">🔍 Ver detalle</div>
-      </div>
-    </div>`).join('');
+  // ── BLOQUE ALERTAS: stock bajo + tareas vencidas ──
+  const alertasWrap = document.getElementById('home-alertas-wrap');
+  if(alertasWrap){
+    const criticos = DB.productos.filter(p=>p.tipo!=='servicio'&&p.stock!==null&&p.stock<=4).sort((a,b)=>a.stock-b.stock);
+    const vencidas = DB.tareas.filter(t=>t.date&&new Date(t.date+'T23:59:59')<new Date());
+    const alertas  = [];
 
-  const tl=document.getElementById('home-tareas-list');
-  const sorted=[...DB.tareas].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  tl.innerHTML=!sorted.length?`<div class="empty-state" style="padding:28px 0"><div class="empty-icon">✅</div><div class="empty-text">Sin tareas pendientes.</div></div>`:
-    sorted.slice(0,5).map(t=>{const o=t.date&&new Date(t.date+'T23:59:59')<new Date();return `<div class="list-row" onclick="navTo('tareas');setTimeout(()=>openSidePanel(${t.id}),80)">
-      <div class="row-icon" style="background:${o?'var(--red-l)':'var(--blue-l)'};">${o?'⚠️':'📅'}</div>
-      <div class="row-body"><div class="row-name">${t.name}</div><div class="row-sub">${fmtDate(t.date)}</div></div>
-      <div class="row-right"><div class="row-amount" style="color:var(--green)">${t.amount?fmtGs(t.amount):''}</div></div>
-    </div>`;}).join('');
+    if(criticos.length){
+      alertas.push(`
+        <div style="display:flex;align-items:flex-start;gap:12px;background:#FFFBEB;
+          border:1.5px solid #FCD34D;border-radius:var(--r-sm);padding:12px 14px;">
+          <span style="font-size:1.1rem;flex-shrink:0;">⚠️</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:.85rem;color:#92400E;">
+              ${criticos.length} producto${criticos.length!==1?'s':''} con stock bajo
+            </div>
+            <div style="font-size:.75rem;color:#92400E;opacity:.8;margin-top:2px;">
+              ${criticos.slice(0,3).map(p=>`${p.emoji||'📦'} ${p.nombre} (${p.stock===0?'sin stock':p.stock+' u.'})`).join(' · ')}${criticos.length>3?` · y ${criticos.length-3} más`:''}
+            </div>
+          </div>
+          <button onclick="navTo('productos')" style="flex-shrink:0;background:none;border:1.5px solid #F59E0B;color:#92400E;border-radius:100px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font);">Ver →</button>
+        </div>`);
+    }
+
+    if(vencidas.length){
+      alertas.push(`
+        <div style="display:flex;align-items:flex-start;gap:12px;background:var(--red-l);
+          border:1.5px solid var(--red);border-radius:var(--r-sm);padding:12px 14px;">
+          <span style="font-size:1.1rem;flex-shrink:0;">🔴</span>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:.85rem;color:var(--red);">
+              ${vencidas.length} tarea${vencidas.length!==1?'s':''} vencida${vencidas.length!==1?'s':''}
+            </div>
+            <div style="font-size:.75rem;color:var(--red);opacity:.8;margin-top:2px;">
+              ${vencidas.slice(0,2).map(t=>t.name).join(' · ')}${vencidas.length>2?` · y ${vencidas.length-2} más`:''}
+            </div>
+          </div>
+          <button onclick="navTo('tareas')" style="flex-shrink:0;background:none;border:1.5px solid var(--red);color:var(--red);border-radius:100px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font);">Ver →</button>
+        </div>`);
+    }
+
+    if(!alertas.length && DB.productos.length){
+      // Solo mostrar "todo en orden" si ya tiene productos cargados
+      alertasWrap.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;background:var(--green-l);
+          border:1.5px solid var(--green);border-radius:var(--r-sm);padding:10px 14px;">
+          <span style="font-size:1rem;">✅</span>
+          <span style="font-size:.83rem;font-weight:600;color:var(--green);">Todo en orden — sin alertas activas</span>
+        </div>`;
+    } else if(alertas.length){
+      alertasWrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${alertas.join('')}</div>`;
+    } else {
+      alertasWrap.innerHTML = '';
+    }
+  }
+
+  // ── Últimas ventas ──
+  const vl = document.getElementById('home-ventas-list');
+  if(vl){
+    const ventasHoy = DB.ventas.filter(v=>new Date(v.date).toDateString()===today);
+    if(!DB.ventas.length){
+      vl.innerHTML = `<div style="padding:24px 0;text-align:center;">
+        <div style="font-size:1.8rem;margin-bottom:8px;">🛒</div>
+        <div style="font-size:.85rem;color:var(--ink3);line-height:1.5;">Tus ventas del día<br>aparecerán acá</div>
+        <button onclick="navTo('pos')" style="margin-top:12px;background:var(--green);color:white;border:none;border-radius:100px;padding:7px 18px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font);">Ir a Vender →</button>
+      </div>`;
+    } else {
+      const listaVentas = ventasHoy.length ? ventasHoy : DB.ventas.slice(0,5);
+      const etiqueta    = ventasHoy.length ? 'Hoy' : 'Recientes';
+      vl.innerHTML = `<div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${etiqueta}</div>` +
+        listaVentas.slice(0,5).map(v=>`
+          <div class="list-row" onclick="openVentaDetail(${v.id})" style="cursor:pointer;" title="Ver detalle">
+            <div class="row-icon" style="background:var(--green-l);">🛒</div>
+            <div class="row-body">
+              <div class="row-name">${v.clienteNombre||'Venta rápida'}</div>
+              <div class="row-sub">${v.items.map(i=>i.nombre).join(', ').substring(0,45)}</div>
+            </div>
+            <div class="row-right">
+              <div class="row-amount" style="color:var(--green)">+${fmtGs(v.total)}</div>
+              <div class="row-date">${timeAgo(v.date)}</div>
+            </div>
+          </div>`).join('') +
+        (DB.ventas.length > 5 ? `<div style="padding:10px 0 2px;"><button onclick="navTo('movimientos')" style="width:100%;background:none;border:1.5px solid var(--border);border-radius:100px;padding:7px;font-size:.75rem;font-weight:700;color:var(--ink2);cursor:pointer;font-family:var(--font);">Ver todas →</button></div>` : '');
+    }
+  }
+
+  // ── Próximas tareas ──
+  const tl = document.getElementById('home-tareas-list');
+  if(tl){
+    const sorted = [...DB.tareas].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    if(!sorted.length){
+      tl.innerHTML = `<div style="padding:24px 0;text-align:center;">
+        <div style="font-size:1.8rem;margin-bottom:8px;">📋</div>
+        <div style="font-size:.85rem;color:var(--ink3);line-height:1.5;">Tus tareas y recordatorios<br>aparecerán acá</div>
+        <button onclick="navTo('tareas');setTimeout(openTaskModal,80)" style="margin-top:12px;background:var(--blue);color:white;border:none;border-radius:100px;padding:7px 18px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font);">+ Nueva tarea</button>
+      </div>`;
+    } else {
+      tl.innerHTML = sorted.slice(0,5).map(t=>{
+        const o = t.date&&new Date(t.date+'T23:59:59')<new Date();
+        return `<div class="list-row" onclick="navTo('tareas');setTimeout(()=>openSidePanel(${t.id}),80)">
+          <div class="row-icon" style="background:${o?'var(--red-l)':'var(--blue-l)'};">${o?'⚠️':'📅'}</div>
+          <div class="row-body">
+            <div class="row-name">${t.name}</div>
+            <div class="row-sub">${fmtDate(t.date)}${o?' · Vencida':''}</div>
+          </div>
+          <div class="row-right">
+            <div class="row-amount" style="color:var(--green)">${t.amount?fmtGs(t.amount):''}</div>
+          </div>
+        </div>`;
+      }).join('') +
+      (sorted.length > 5 ? `<div style="padding:10px 0 2px;"><button onclick="navTo('tareas')" style="width:100%;background:none;border:1.5px solid var(--border);border-radius:100px;padding:7px;font-size:.75rem;font-weight:700;color:var(--ink2);cursor:pointer;font-family:var(--font);">Ver todas →</button></div>` : '');
+    }
+  }
 }
+// ══════════════════════════════════════════════════════════
+// FIN PANTALLA INICIO ▲▲▲
+// ══════════════════════════════════════════════════════════
 function renderTareas(){
   const list=document.getElementById('tareas-list');
   document.getElementById('tareas-sub').textContent=DB.tareas.length?`${DB.tareas.length} tarea${DB.tareas.length!==1?'s':''} pendiente${DB.tareas.length!==1?'s':''}` : 'Sin tareas pendientes';
