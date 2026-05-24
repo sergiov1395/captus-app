@@ -6245,7 +6245,8 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
     if (errorEl)  errorEl.style.display = 'none';
   }
 
-  sb.auth.onAuthStateChange(async (event, session) => {
+ sb.auth.onAuthStateChange(async (event, session) => {
+    console.log(`⏱ AUTH EVENT: ${event} — ${new Date().toLocaleTimeString()}`);
     if (session) {
       showLoginScreen(false);
       showApp(true);
