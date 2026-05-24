@@ -2134,22 +2134,31 @@ html.dark button[onclick="exportReportePDF()"] {
           <div>
             <div class="field"><label>Nombre del negocio</label><input type="text" id="cfg-nombre" placeholder="Ej: Imprenta Don Pedro"></div>
             <div class="field"><label>Tipo de negocio</label>
-              <!-- ══ MODIFICADO: lista unificada de 12 tipos de negocio ══ -->
+              <!-- ══ MODIFICADO v2: sincronizado con register.html — 21 opciones con value ══ -->
               <select id="cfg-tipo" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);outline:none;">
-                <option>Imprenta / Diseño</option>
-                <option>Almacén / Minimarket</option>
-                <option>Gastronomía / Restaurante</option>
-                <option>Panadería / Repostería</option>
-                <option>Ferretería / Materiales</option>
-                <option>Salud / Belleza</option>
-                <option>Taller / Automotor</option>
-                <option>Ropa / Calzado</option>
-                <option>Farmacia / Herboristería</option>
-                <option>Tecnología / Electrónica</option>
-                <option>Educación / Cursos</option>
-                <option>Otro</option>
+                <option value="Imprenta / Diseño">🖨️ Imprenta / Diseño</option>
+                <option value="Almacén / Minimarket">🛒 Almacén / Minimarket</option>
+                <option value="Gastronomía / Restaurante">🍔 Gastronomía / Restaurante</option>
+                <option value="Panadería / Repostería">🥖 Panadería / Repostería</option>
+                <option value="Papelería / Librería">📚 Papelería / Librería</option>
+                <option value="Ferretería / Materiales">🔧 Ferretería / Materiales</option>
+                <option value="Salud / Belleza">💅 Salud / Belleza</option>
+                <option value="Taller / Automotor">🚗 Taller / Automotor</option>
+                <option value="Ropa / Calzado">👕 Ropa / Calzado</option>
+                <option value="Farmacia / Herboristería">💊 Farmacia / Herboristería</option>
+                <option value="Tecnología / Electrónica">📱 Tecnología / Electrónica</option>
+                <option value="Educación / Cursos">🎓 Educación / Cursos</option>
+                <option value="Veterinaria / Mascotas">🐾 Veterinaria / Mascotas</option>
+                <option value="Joyería / Relojería">💍 Joyería / Relojería</option>
+                <option value="Floristería / Plantas">🌸 Floristería / Plantas</option>
+                <option value="Juguetería / Cotillón">🎈 Juguetería / Cotillón</option>
+                <option value="Óptica">👓 Óptica</option>
+                <option value="Inmobiliaria / Servicios">🏠 Inmobiliaria / Servicios</option>
+                <option value="Agropecuaria / Semillas">🌾 Agropecuaria / Semillas</option>
+                <option value="Distribuidora / Mayorista">📦 Distribuidora / Mayorista</option>
+                <option value="Otro">🏪 Otro</option>
               </select>
-              <!-- ══ FIN MODIFICADO ══ -->
+              <!-- ══ FIN MODIFICADO v2 ══ -->
             </div>
             <div class="field-row">
               <div class="field"><label>Teléfono / WhatsApp</label><input type="tel" id="cfg-tel" placeholder="0981 000 000"></div>

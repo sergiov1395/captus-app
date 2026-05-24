@@ -502,7 +502,8 @@ let DB={
   tareas:[], historial:[],
   // ── AGREGADO: caché de cuentas corrientes ──
   cuentasCorrientes:[],
-  config:{nombre:'Mi Negocio',tipo:'Imprenta / Diseño',tel:'',ruc:'',dir:'',slogan:'',
+  // ══ MODIFICADO v2: tipo por defecto vacío para que loadConfig use el valor real de la DB ══
+config:{nombre:'Mi Negocio',tipo:'',tel:'',ruc:'',dir:'',slogan:'',
           ticketMsg:'¡Gracias por su compra! Vuelva pronto 😊',
           impresora:'termica',copias:1,autoprint:'preguntar',logoDataUrl:''},
 };

@@ -298,7 +298,8 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
       <div class="success-icon">🎉</div>
       <div class="section-title" style="margin-bottom:8px;">¡Cuenta creada!</div>
       <div class="section-sub">
-        Tu negocio ya está registrado en Captus con el <strong>Plan Gratis</strong>.
+        <!-- ══ MODIFICADO: Plan Gratis → Demo ══ -->
+        Tu negocio ya está registrado en Captus con la <strong>Demo gratuita de 7 días</strong>.
         Revisá tu email para confirmar tu cuenta, después podés iniciar sesión.
       </div>
       <div class="feature-list" style="text-align:left;">
@@ -333,27 +334,35 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
           <input type="text" id="biz-nombre" placeholder="Ej: Imprenta Rodríguez" maxlength="80">
         </div>
 
+        <!-- ══ MODIFICADO: selector desplegable de tipo de negocio ══ -->
         <div class="field">
           <label>Tipo de negocio</label>
-          <!-- ── AGREGADO: selector visual de tipo ── -->
-          <div class="tipo-grid" id="tipo-grid">
-            <!-- ══ MODIFICADO: lista unificada de 12 tipos de negocio ══ -->
-            <div class="tipo-opt selected" data-val="Imprenta / Diseño"        onclick="selectTipo(this)"><span class="tipo-ico">🖨️</span>Imprenta / Diseño</div>
-            <div class="tipo-opt"          data-val="Almacén / Minimarket"     onclick="selectTipo(this)"><span class="tipo-ico">🛒</span>Almacén / Minimarket</div>
-            <div class="tipo-opt"          data-val="Gastronomía / Restaurante" onclick="selectTipo(this)"><span class="tipo-ico">🍔</span>Gastronomía / Restaurante</div>
-            <div class="tipo-opt"          data-val="Panadería / Repostería"   onclick="selectTipo(this)"><span class="tipo-ico">🥖</span>Panadería / Repostería</div>
-            <div class="tipo-opt"          data-val="Ferretería / Materiales"  onclick="selectTipo(this)"><span class="tipo-ico">🔧</span>Ferretería / Materiales</div>
-            <div class="tipo-opt"          data-val="Salud / Belleza"          onclick="selectTipo(this)"><span class="tipo-ico">💅</span>Salud / Belleza</div>
-            <div class="tipo-opt"          data-val="Taller / Automotor"       onclick="selectTipo(this)"><span class="tipo-ico">🚗</span>Taller / Automotor</div>
-            <div class="tipo-opt"          data-val="Ropa / Calzado"           onclick="selectTipo(this)"><span class="tipo-ico">👕</span>Ropa / Calzado</div>
-            <div class="tipo-opt"          data-val="Farmacia / Herboristería" onclick="selectTipo(this)"><span class="tipo-ico">💊</span>Farmacia / Herboristería</div>
-            <div class="tipo-opt"          data-val="Tecnología / Electrónica" onclick="selectTipo(this)"><span class="tipo-ico">📱</span>Tecnología / Electrónica</div>
-            <div class="tipo-opt"          data-val="Educación / Cursos"       onclick="selectTipo(this)"><span class="tipo-ico">🎓</span>Educación / Cursos</div>
-            <div class="tipo-opt"          data-val="Otro"                     onclick="selectTipo(this)"><span class="tipo-ico">📦</span>Otro</div>
-            <!-- ══ FIN MODIFICADO ══ -->
-          </div>
-          <input type="hidden" id="biz-tipo" value="Imprenta / Diseño">
-        </div>
+          <!-- ══ MODIFICADO v2: valores sin emoji para coincidir exactamente con DB y cfg-tipo ══ -->
+<!-- ══ MODIFICADO v3: lista completa de 21 opciones ══ -->
+<select id="biz-tipo" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;cursor:pointer;">
+  <option value="Imprenta / Diseño">🖨️ Imprenta / Diseño</option>
+  <option value="Almacén / Minimarket">🛒 Almacén / Minimarket</option>
+  <option value="Gastronomía / Restaurante">🍔 Gastronomía / Restaurante</option>
+  <option value="Panadería / Repostería">🥖 Panadería / Repostería</option>
+  <option value="Papelería / Librería">📚 Papelería / Librería</option>
+  <option value="Ferretería / Materiales">🔧 Ferretería / Materiales</option>
+  <option value="Salud / Belleza">💅 Salud / Belleza</option>
+  <option value="Taller / Automotor">🚗 Taller / Automotor</option>
+  <option value="Ropa / Calzado">👕 Ropa / Calzado</option>
+  <option value="Farmacia / Herboristería">💊 Farmacia / Herboristería</option>
+  <option value="Tecnología / Electrónica">📱 Tecnología / Electrónica</option>
+  <option value="Educación / Cursos">🎓 Educación / Cursos</option>
+  <option value="Veterinaria / Mascotas">🐾 Veterinaria / Mascotas</option>
+  <option value="Joyería / Relojería">💍 Joyería / Relojería</option>
+  <option value="Floristería / Plantas">🌸 Floristería / Plantas</option>
+  <option value="Juguetería / Cotillón">🎈 Juguetería / Cotillón</option>
+  <option value="Óptica">👓 Óptica</option>
+  <option value="Inmobiliaria / Servicios">🏠 Inmobiliaria / Servicios</option>
+  <option value="Agropecuaria / Semillas">🌾 Agropecuaria / Semillas</option>
+  <option value="Distribuidora / Mayorista">📦 Distribuidora / Mayorista</option>
+  <option value="Otro">🏪 Otro</option>
+</select>
+<!-- ══ FIN MODIFICADO v3 ══ -->
 
         <button class="btn btn-primary btn-full" onclick="goStep2()">
           Continuar →
@@ -365,15 +374,19 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
         <div class="section-title">Tu acceso</div>
         <div class="section-sub">Creá el email y contraseña con que vas a ingresar.</div>
 
-        <div class="plan-badge">🎁 Plan Gratis incluido</div>
+        <!-- ══ MODIFICADO: badge Demo + features actualizados ══ -->
+        <div class="plan-badge">🚀 Demo gratuita — 7 días completos</div>
 
         <div class="feature-list">
-          <div class="feature-item"><span>✅</span> Punto de venta</div>
-          <div class="feature-item"><span>✅</span> Hasta 50 productos</div>
-          <div class="feature-item"><span>✅</span> Hasta 20 clientes</div>
-          <div class="feature-item"><span>✅</span> Reportes básicos</div>
-          <div class="feature-item"><span>🔒</span> Reportes avanzados y más — Plan Pro</div>
+          <div class="feature-item"><span>✅</span> Punto de venta completo</div>
+          <div class="feature-item"><span>✅</span> Productos ilimitados</div>
+          <div class="feature-item"><span>✅</span> Clientes ilimitados</div>
+          <div class="feature-item"><span>✅</span> Reportes avanzados</div>
+          <div class="feature-item"><span>✅</span> Catálogo público</div>
+          <div class="feature-item"><span>✅</span> Cuentas corrientes / Fiado</div>
+          <div class="feature-item"><span>✅</span> Todas las funciones por 7 días</div>
         </div>
+        <!-- ══ FIN MODIFICADO ══ -->
 
         <div class="alert alert-error" id="err2"></div>
 
@@ -381,16 +394,26 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
           <label>Email</label>
           <input type="email" id="reg-email" placeholder="tu@email.com" autocomplete="email">
         </div>
+        <!-- ══ MODIFICADO: campos de contraseña con botón ver/ocultar ══ -->
         <div class="field">
           <label>Contraseña</label>
-          <input type="password" id="reg-pass" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+          <div style="position:relative;">
+            <input type="password" id="reg-pass" placeholder="Mínimo 8 caracteres" autocomplete="new-password" style="width:100%;padding-right:44px;box-sizing:border-box;">
+            <button type="button" onclick="togglePass('reg-pass','eye1')" tabindex="-1"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:var(--ink3);font-size:1.1rem;line-height:1;" id="eye1">👁️</button>
+          </div>
           <div class="field-hint">Al menos 8 caracteres. Guardala bien.</div>
         </div>
         <div class="field">
           <label>Confirmar contraseña</label>
-          <input type="password" id="reg-pass2" placeholder="Repetí la contraseña"
-            onkeydown="if(event.key==='Enter') doRegister()">
+          <div style="position:relative;">
+            <input type="password" id="reg-pass2" placeholder="Repetí la contraseña"
+              onkeydown="if(event.key==='Enter') doRegister()" style="width:100%;padding-right:44px;box-sizing:border-box;">
+            <button type="button" onclick="togglePass('reg-pass2','eye2')" tabindex="-1"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:var(--ink3);font-size:1.1rem;line-height:1;" id="eye2">👁️</button>
+          </div>
         </div>
+        <!-- ══ FIN MODIFICADO ══ -->
 
         <button class="btn btn-primary btn-full" id="reg-btn" onclick="doRegister()">
           Crear cuenta gratis →
@@ -422,17 +445,26 @@ const SUPA_URL = 'https://ykglfcjxbgrutpyrjrzv.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZ2xmY2p4YmdydXRweXJqcnp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTk1ODAsImV4cCI6MjA5NDMzNTU4MH0.lZP5ZecJifxWYX9eDK08i2vEgJ8gnmXEyAFgoD4xTKI';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// ── ESTADO: guardamos los datos del paso 1 mientras avanzamos ──
-let step1Data = { nombre: '', tipo: 'Imprenta / Diseño' }; // ══ sin cambio: el valor sigue igual ══
 
-// ────────────────────────────────────────────────────────
-// selectTipo: resalta la opción clickeada en el selector visual
-// ────────────────────────────────────────────────────────
-function selectTipo(el) {
-  document.querySelectorAll('.tipo-opt').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
-  document.getElementById('biz-tipo').value = el.dataset.val;
+// ══ MODIFICADO: tipo se lee del <select> en goStep2 ══
+// ══ MODIFICADO: tipo se lee del <select> en goStep2 ══
+let step1Data = { nombre: '', tipo: 'Imprenta / Diseño' };
+
+// ══ AGREGADO: togglePass — alterna visibilidad del campo contraseña ══
+function togglePass(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  const btn   = document.getElementById(btnId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+  }
 }
+// ══ FIN AGREGADO ══
+
+// ══ MODIFICADO: selectTipo eliminado, ahora el <select> nativo maneja el valor directamente ══
 
 // ────────────────────────────────────────────────────────
 // showErr: muestra el mensaje de error en el paso indicado
@@ -534,17 +566,24 @@ async function doRegister() {
     });
 
     if (authError) {
-      // Mensaje de error amigable según el tipo
+      // ══ MODIFICADO: diagnóstico detallado del error de auth ══
+      console.error('authError completo:', authError);
       let msg = '❌ Error al crear la cuenta. Intentá de nuevo.';
-      if (authError.message.includes('already registered')) {
+      if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
         msg = '⚠️ Ese email ya tiene una cuenta. ¿Querés iniciar sesión?';
       } else if (authError.message.includes('invalid')) {
         msg = '⚠️ El email no es válido.';
+      } else if (authError.status === 429 || authError.message.includes('429')) {
+        msg = '⏳ Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
+      // ══ MODIFICADO: mensaje genérico final sin exponer error técnico ══
+      } else {
+        msg = '❌ Ocurrió un error inesperado. Por favor intentá de nuevo.';
       }
       showErr(2, msg);
       btn.disabled = false;
       btn.innerHTML = 'Crear cuenta gratis →';
       return;
+      // ══ FIN MODIFICADO ══
     }
 
     const userId = authData.user?.id;
@@ -590,10 +629,16 @@ async function doRegister() {
     document.getElementById('success-screen').style.display = 'block';
 
   } catch (err) {
+    // ══ MODIFICADO: mensajes de error amigables por tipo ══
     console.error('Error en registro:', err);
-    showErr(2, '❌ Ocurrió un error inesperado. Por favor intentá de nuevo.');
+    let msg = '❌ Ocurrió un error inesperado. Por favor intentá de nuevo.';
+    if (err?.message?.includes('429') || err?.status === 429) {
+      msg = '⏳ Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
+    }
+    showErr(2, msg);
     btn.disabled = false;
     btn.innerHTML = 'Crear cuenta gratis →';
+    // ══ FIN MODIFICADO ══
   }
 }
 // ══════════════════════════════════════════════════════
