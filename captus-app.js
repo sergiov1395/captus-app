@@ -58,6 +58,107 @@ async function doLogin() {
   // Si hay éxito, onAuthStateChange se dispara solo y arranca la app
 }
 
+// ══ AGREGADO: Recuperar contraseña ══
+async function mostrarRecuperarPass(e) {
+  e.preventDefault();
+
+  const email = document.getElementById('login-email').value.trim();
+  const errorEl = document.getElementById('login-error');
+
+  // Si ya hay un email escrito, lo usamos directo
+  // Si no, pedimos que lo escriba
+  if (!email) {
+    errorEl.textContent = '✉️ Escribí tu email arriba y luego hacé clic en "¿Olvidaste tu contraseña?"';
+    errorEl.style.display = 'block';
+    document.getElementById('login-email').focus();
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errorEl.textContent = '⚠️ El email no tiene un formato válido.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  errorEl.style.display = 'none';
+
+  // Llamada a Supabase para enviar el email de recuperación
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href, // vuelve a tu app después de resetear
+  });
+
+  if (error) {
+    errorEl.textContent = '❌ No se pudo enviar el correo. Verificá el email e intentá de nuevo.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  // Éxito
+  errorEl.style.background = 'var(--green-l, #d1fae5)';
+  errorEl.style.color = 'var(--green, #065f46)';
+  errorEl.textContent = '✅ ¡Listo! Revisá tu casilla de correo. El link expira en 1 hora.';
+  errorEl.style.display = 'block';
+}
+
+// ══ AGREGADO: Guardar nueva contraseña desde el modal de recuperación ══
+async function guardarNuevaContrasena() {
+  const pass1  = document.getElementById('reset-pass1').value;
+  const pass2  = document.getElementById('reset-pass2').value;
+  const btn    = document.getElementById('reset-btn');
+  const msgEl  = document.getElementById('reset-msg');
+
+  function showResetMsg(texto, tipo) {
+    msgEl.textContent = texto;
+    msgEl.style.background = tipo === 'error' ? 'var(--red-l)'  : 'var(--green-l)';
+    msgEl.style.color      = tipo === 'error' ? 'var(--red)'    : 'var(--green)';
+    msgEl.style.display    = 'block';
+  }
+
+  if (!pass1 || !pass2) {
+    showResetMsg('⚠️ Completá ambos campos.', 'error');
+    return;
+  }
+  if (pass1.length < 8) {
+    showResetMsg('⚠️ La contraseña debe tener al menos 8 caracteres.', 'error');
+    return;
+  }
+  if (pass1 !== pass2) {
+    showResetMsg('⚠️ Las contraseñas no coinciden.', 'error');
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'Guardando…';
+
+  const { error } = await sb.auth.updateUser({ password: pass1 });
+
+  if (error) {
+    showResetMsg('❌ No se pudo guardar. Solicitá un nuevo link de recuperación.', 'error');
+    btn.disabled    = false;
+    btn.textContent = '💾 Guardar nueva contraseña';
+    return;
+  }
+
+  showResetMsg('✅ ¡Contraseña actualizada! Redirigiendo…', 'ok');
+  btn.disabled = true;
+
+  setTimeout(() => {
+    document.getElementById('reset-pass-overlay').style.display = 'none';
+    document.getElementById('reset-pass1').value = '';
+    document.getElementById('reset-pass2').value = '';
+  }, 2000);
+}
+
+// ══ AGREGADO: Detectar si el usuario viene desde el link de recuperación ══
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    const overlay = document.getElementById('reset-pass-overlay');
+    if (overlay) overlay.style.display = 'flex';
+  }
+});
+// ══ FIN AGREGADO ══
+// ══ FIN AGREGADO ══
+
 // ══════════════════════════════════════════════════════
 // ▼▼▼ ETAPA 4 — MÓDULO B: SISTEMA DE PLANES ▼▼▼
 // ══════════════════════════════════════════════════════
