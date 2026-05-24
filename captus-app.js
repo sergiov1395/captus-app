@@ -702,17 +702,24 @@ function saltarAperturaCaja(){
 function actualizarIndicadorCaja(){
   // ── Badge en pantalla Caja/Balance (FASE 2: reemplaza el del POS) ──
   const badge = document.getElementById('caja-status-badge-balance');
+  // ══ MODIFICADO: usa clases CSS en vez de style inline para que
+  //    las variables CSS funcionen correctamente en iOS dark mode ══
   if(badge){
     if(turnoActual){
-      badge.textContent  = `🟢 Caja abierta · ${fmtMoneda(turnoActual.monto_inicial, monedaPrincipal())}`;
-      badge.style.background = 'var(--green-l)';
-      badge.style.color      = 'var(--green)';
+      badge.textContent = `🟢 Caja abierta · ${fmtMoneda(turnoActual.monto_inicial, monedaPrincipal())}`;
+      badge.classList.remove('badge-caja-cerrada');
+      badge.classList.add('badge-caja-abierta');
+      badge.style.background = '';
+      badge.style.color      = '';
     } else {
-      badge.textContent  = '🔴 Caja cerrada';
-      badge.style.background = 'var(--red-l,#fee2e2)';
-      badge.style.color      = 'var(--red)';
+      badge.textContent = '🔴 Caja cerrada';
+      badge.classList.remove('badge-caja-abierta');
+      badge.classList.add('badge-caja-cerrada');
+      badge.style.background = '';
+      badge.style.color      = '';
     }
   }
+  // ══ FIN MODIFICADO ══
 
   // ── Botones abrir/cerrar caja en Balance ──
   const btnAbrir  = document.getElementById('btn-abrir-caja');

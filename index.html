@@ -380,6 +380,18 @@ html.dark .cart-footer{background:var(--bg);}
 }
 /* ══ FIN AGREGADO ══ */
 
+/* ══ AGREGADO: clases del badge de estado de caja — resuelven correctamente
+      en modo claro Y oscuro sin depender de style inline con var() ══ */
+.badge-caja-abierta {
+  background: var(--green-l) !important;
+  color: var(--green) !important;
+}
+.badge-caja-cerrada {
+  background: var(--red-l) !important;
+  color: var(--red) !important;
+}
+/* ══ FIN AGREGADO badge caja ══ */
+
 /* ══ AGREGADO: fix modales apertura/cierre caja en modo oscuro móvil ══ */
 html.dark #caja-apertura-overlay .modal,
 html.dark #caja-cierre-overlay .modal {
