@@ -520,6 +520,11 @@ let planActual = { plan_id: 'gratis', features: [] };
 async function initApp(){
   // Mostrar pantalla de carga
   document.getElementById('loading-screen').style.display='flex';
+  // ── DIAGNÓSTICO TEMPORAL ──
+  const _t0 = performance.now();
+  const _log = (msg) => console.log(`⏱ ${msg} — ${((performance.now()-_t0)/1000).toFixed(2)}s`);
+  _log('initApp START');
+  // ── FIN DIAGNÓSTICO ──
 
   try {
     // getSession() lee el token del localStorage sin llamada de red (no se cuelga)
@@ -537,6 +542,7 @@ async function initApp(){
     if (unError) throw new Error('usuarios_negocios: ' + unError.message);
     if (!unData) throw new Error('Este usuario no tiene negocio asignado');
     negocioId = unData.negocio_id;
+    _log('usuarios_negocios OK'); // ── DIAGNÓSTICO ──
 
     // ── AGREGADO ETAPA 4: cargar plan y features del negocio ──
     const { data: susData } = await sb
@@ -578,6 +584,7 @@ async function initApp(){
     }
     // Aplicar restricciones visuales según el plan
     aplicarRestriccionesPlan();
+    _log('suscripciones OK'); // ── DIAGNÓSTICO ──
     // ── FIN AGREGADO ETAPA 4 ──
 
     // Cargar todas las tablas en paralelo (más rápido que una por una)
@@ -604,6 +611,7 @@ const [
       sb.from('cuentas_corrientes').select('*').eq('negocio_id', negocioId).order('fecha', {ascending: false})
       // ── FIN MODIFICADO ETAPA 2 ──
     ]);
+    _log('Promise.all 8 tablas OK'); // ── DIAGNÓSTICO ──
 
 // Poblar caché local
     DB.productos          = productos          || [];
@@ -717,6 +725,7 @@ const [
 
   // ── NUEVO: verificar si ya hay una caja abierta hoy ──
   await verificarCajaHoy();
+    _log('verificarCajaHoy OK'); // ── DIAGNÓSTICO ──
   // ── AGREGADO SINCRONIZACIÓN: escuchar cambios en caja desde otros dispositivos ──
   suscribirCambiosCaja();
 
