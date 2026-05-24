@@ -503,15 +503,17 @@ html.dark button[onclick="exportReportePDF()"] {
   .sidebar-footer,
   .sb-label { display: none !important; }
 
-  /* Las secciones del sidebar se ponen en fila */
+  /* ══ MODIFICADO 3B: secciones en fila ocupando todo el ancho ══ */
   .sidebar-section {
     display: flex;
     flex-direction: row;
     padding: 0;
     margin: 0;
+    flex: 1;
   }
-  /* ══ MODIFICADO 3A: en móvil solo los ítems marcados con sb-main son visibles ══ */
   .sidebar-section.sb-secondary { display: none; }
+  /* nav-mas-section fijo al final, sin flex creciente */
+  #nav-mas-section { flex: 0 0 auto; }
 
   /* ══ MODIFICADO 3B: etiquetas más legibles en bottom nav ══ */
   .nav-item {
