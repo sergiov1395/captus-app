@@ -594,7 +594,9 @@ const [
       {data: tareas},
       {data: config},
       // ── AGREGADO: cargar cuentas corrientes ──
-      {data: cuentasCorrientes}
+      {data: cuentasCorrientes},
+      // ══ AGREGADO: datos del negocio (nombre y tipo elegidos al registrarse) ══
+      {data: negocioData}
     ] = await Promise.all([
       // ── MODIFICADO ETAPA 2: todos los SELECT filtran por negocio_id ──
       sb.from('productos').select('*').eq('negocio_id', negocioId).order('id'),
@@ -605,8 +607,11 @@ const [
       sb.from('tareas').select('*').eq('negocio_id', negocioId).order('date'),
       sb.from('config').select('*').eq('negocio_id', negocioId).single(),
       // ── MODIFICADO ETAPA 2 ──
-      sb.from('cuentas_corrientes').select('*').eq('negocio_id', negocioId).order('fecha', {ascending: false})
+      sb.from('cuentas_corrientes').select('*').eq('negocio_id', negocioId).order('fecha', {ascending: false}),
       // ── FIN MODIFICADO ETAPA 2 ──
+      // ══ MODIFICADO: pedir nombre Y tipo desde tabla negocios ══
+      sb.from('negocios').select('nombre, tipo').eq('id', negocioId).single()
+      // ══ FIN MODIFICADO ══
     ]);
     
 
@@ -642,30 +647,33 @@ const [
                     .sort((a,b) => new Date(b.completedAt) - new Date(a.completedAt));
 
     // Cargar config del negocio
-    if(config){
+    // ══ MODIFICADO: si no hay fila en config aún, usamos un objeto vacío como base ══
+    const configBase = config || {};
+    if(true){
       DB.config = {
-        nombre:      config.nombre      || 'Mi Negocio',
-        tipo:        config.tipo        || 'Imprenta / Diseño',
-        tel:         config.tel         || '',
-        ruc:         config.ruc         || '',
-        dir:         config.dir         || '',
-        slogan:      config.slogan      || '',
-        ticketMsg:   config.ticket_msg  || '¡Gracias por su compra!',
-        impresora:   config.impresora   || 'termica',
-        copias:      config.copias      || 1,
-        autoprint:   config.autoprint   || 'preguntar',
-        logoDataUrl: config.logo_url    || '',
+        // ══ MODIFICADO: nombre y tipo siempre vienen de negocios (fuente de verdad del registro) ══
+        nombre:      negocioData?.nombre || configBase.nombre || 'Mi Negocio',
+        tipo:        negocioData?.tipo   || configBase.tipo   || 'Imprenta / Diseño',
+        tel:         configBase.tel         || '',
+        ruc:         configBase.ruc         || '',
+        dir:         configBase.dir         || '',
+        slogan:      configBase.slogan      || '',
+        ticketMsg:   configBase.ticket_msg  || '¡Gracias por su compra!',
+        impresora:   configBase.impresora   || 'termica',
+        copias:      configBase.copias      || 1,
+        autoprint:   configBase.autoprint   || 'preguntar',
+        logoDataUrl: configBase.logo_url    || '',
         // ── LÍNEAS AGREGADAS FASE 1 ──
-        moneda_principal:    config.moneda_principal    || 'PYG',
+        moneda_principal:    configBase.moneda_principal    || 'PYG',
         // ── BUG FIX: si la columna no existe o es null, usar array vacío (no default con monedas) ──
         // El default ['USD','ARS','BRL'] sobreescribía lo que el usuario guardaba cuando
         // la columna venía como null desde Supabase. Ahora se normaliza correctamente.
-        monedas_habilitadas: Array.isArray(config.monedas_habilitadas)
-                               ? config.monedas_habilitadas
-                               : (config.monedas_habilitadas ? [config.monedas_habilitadas] : []),
-        tipos_cambio:        config.tipos_cambio        || {},
+        monedas_habilitadas: Array.isArray(configBase.monedas_habilitadas)
+                               ? configBase.monedas_habilitadas
+                               : (configBase.monedas_habilitadas ? [configBase.monedas_habilitadas] : []),
+        tipos_cambio:        configBase.tipos_cambio        || {},
         // ── NUEVO: zona horaria ──
-        zona_horaria:        config.zona_horaria        || 'America/Asuncion'
+        zona_horaria:        configBase.zona_horaria        || 'America/Asuncion'
         // ── FIN NUEVO ──
         // ── FIN LÍNEAS AGREGADAS ──
       };
