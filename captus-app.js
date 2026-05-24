@@ -6890,12 +6890,23 @@ function openMasModal() {
   const isDark = document.documentElement.classList.contains('dark');
   const iconModal = document.getElementById('dark-icon-modal');
   if (iconModal) iconModal.textContent = isDark ? '☀️' : '🌙';
+  // ══ MODIFICADO: empujar estado al historial para capturar el botón retroceso ══
+  history.pushState({ masModal: true }, '');
 }
 
 function closeMasModal() {
   document.getElementById('mas-modal-overlay')?.classList.remove('open');
-
+  // ══ MODIFICADO: si el estado actual es el del modal, volver un paso ══
+  if (history.state?.masModal) history.back();
 }
+
+// Captura el botón retroceso del navegador/Android
+window.addEventListener('popstate', function(e) {
+  const overlay = document.getElementById('mas-modal-overlay');
+  if (overlay?.classList.contains('open')) {
+    overlay.classList.remove('open');
+  }
+});
 
 // ══ FIN MODAL MÁS ══
 
