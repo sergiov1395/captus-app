@@ -722,10 +722,8 @@ const [
   }
   // ── FIN AGREGADO ──
 
-  // ── MODIFICADO: arranca en 'pos' (Vender), no en 'inicio' ──
-  renderPosGrid();
-  populateClientes();
-  renderPosTCBar();
+  // ══ MODIFICADO: arranca en 'inicio' ══
+  navTo('inicio');
   updateBadge();
 
   // ── NUEVO: verificar si ya hay una caja abierta hoy ──
@@ -736,6 +734,9 @@ const [
 
   // ── AGREGADO: mostrar FAB del carrito si estamos en móvil ──
   updateCartFab();
+
+  // ── AGREGADO: tour de bienvenida al primer ingreso ──
+  checkAndStartTour();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1062,6 +1063,235 @@ function onProdMonedaChange(code){
 
 // ══════════════════════════════════════════════════════════
 // FIN APERTURA DE CAJA
+// ══════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════
+// TOUR DE BIENVENIDA — AGREGADO COMPLETO
+// Detecta primer ingreso por localStorage, muestra overlay
+// con spotlight que resalta cada sección del menú.
+// También disponible en cualquier momento desde Inicio.
+// ══════════════════════════════════════════════════════════
+
+const TOUR_KEY = 'captus-tour-done-v1';
+
+// Pasos del tour: cada uno apunta a un elemento del DOM
+const TOUR_STEPS = [
+  {
+    target:   null, // paso de bienvenida sin spotlight
+    emoji:    '👋',
+    title:    '¡Bienvenido a Captus!',
+    desc:     'En menos de 1 minuto te mostramos todo lo que podés hacer. ¿Arrancamos?',
+  },
+  {
+    target:   'nav-inicio',
+    emoji:    '🏠',
+    title:    'Pantalla de Inicio',
+    desc:     'Acá ves el resumen del día: ventas, gastos, caja y alertas importantes de tu negocio.',
+  },
+  {
+    target:   'nav-pos',
+    emoji:    '🛒',
+    title:    'Punto de Venta (POS)',
+    desc:     'Desde acá registrás tus ventas. Agregás productos al carrito y cobrás en segundos.',
+  },
+  {
+    target:   'nav-productos',
+    emoji:    '📦',
+    title:    'Inventario',
+    desc:     'Gestioná tus productos y servicios. Controlá stock, precios y costos desde un solo lugar.',
+  },
+  {
+    target:   'nav-clientes',
+    emoji:    '👥',
+    title:    'Clientes',
+    desc:     'Guardá tus contactos y llevá un historial de compras por cliente.',
+  },
+  {
+    target:   'nav-fiado',
+    emoji:    '💳',
+    title:    'Fiado / Cuentas Corrientes',
+    desc:     'Registrá ventas a crédito y controlá quién te debe y cuánto.',
+  },
+  {
+    target:   'nav-balance',
+    emoji:    '💰',
+    title:    'Caja y Balance',
+    desc:     'Abrí y cerrá la caja del día. Ves ingresos, egresos y el saldo real disponible.',
+  },
+  {
+    target:   'nav-reportes',
+    emoji:    '📊',
+    title:    'Reportes',
+    desc:     'Analizá el desempeño de tu negocio con gráficos, rankings de productos y clientes.',
+  },
+  {
+    target:   'nav-tareas',
+    emoji:    '✅',
+    title:    'Tareas',
+    desc:     'Organizá tus pendientes y pedidos. Nunca más se te olvida nada importante.',
+  },
+  {
+    target:   'nav-config',
+    emoji:    '⚙️',
+    title:    'Configuración',
+    desc:     'Personalizá tu negocio: nombre, logo, moneda, ticket de venta y mucho más.',
+  },
+  {
+    target:   null, // paso final sin spotlight
+    emoji:    '🚀',
+    title:    '¡Listo para arrancar!',
+    desc:     'Ya conocés Captus. Empezá cargando tus productos y luego hacé tu primera venta.',
+    esFinal:  true,
+  },
+];
+
+let _tourStep = 0;
+
+// ── checkAndStartTour: se llama al finalizar initApp ──
+// Si el usuario nunca vio el tour, lo arranca automáticamente.
+function checkAndStartTour() {
+  if (!localStorage.getItem(TOUR_KEY)) {
+    // Pequeño delay para que la app termine de renderizarse
+    setTimeout(startTour, 800);
+  }
+}
+
+// ── startTour: abre el overlay y muestra el paso 0 ──
+function startTour() {
+  _tourStep = 0;
+  const overlay = document.getElementById('tour-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'block';
+  _tourRenderStep(_tourStep);
+}
+
+// ── closeTour: cierra el tour y marca como completado ──
+function closeTour() {
+  const overlay = document.getElementById('tour-overlay');
+  if (overlay) overlay.style.display = 'none';
+  localStorage.setItem(TOUR_KEY, '1');
+}
+
+// ── tourNext / tourPrev: navegan entre pasos ──
+function tourNext() {
+  const step = TOUR_STEPS[_tourStep];
+  if (step.esFinal) {
+    closeTour();
+    return;
+  }
+  _tourStep = Math.min(_tourStep + 1, TOUR_STEPS.length - 1);
+  _tourRenderStep(_tourStep);
+}
+
+function tourPrev() {
+  _tourStep = Math.max(_tourStep - 1, 0);
+  _tourRenderStep(_tourStep);
+}
+
+// ── _tourRenderStep: renderiza un paso concreto ──
+function _tourRenderStep(idx) {
+  const step    = TOUR_STEPS[idx];
+  const total   = TOUR_STEPS.length;
+  const card    = document.getElementById('tour-card');
+  const spot    = document.getElementById('tour-spotlight');
+  const backdrop = document.getElementById('tour-backdrop');
+
+  // Rellenar contenido
+  document.getElementById('tour-emoji').textContent  = step.emoji;
+  document.getElementById('tour-title').textContent  = step.title;
+  document.getElementById('tour-desc').textContent   = step.desc;
+
+  // Botón anterior
+  const btnPrev = document.getElementById('tour-btn-prev');
+  btnPrev.style.display = idx > 0 ? 'block' : 'none';
+
+  // Botón siguiente
+  const btnNext = document.getElementById('tour-btn-next');
+  btnNext.textContent = step.esFinal ? '¡Empezar! 🚀' : 'Siguiente →';
+
+  // Dots indicadores
+  const dotsEl = document.getElementById('tour-dots');
+  dotsEl.innerHTML = TOUR_STEPS.map((_, i) => `
+    <div style="
+      width:${i === idx ? '18px' : '7px'};height:7px;border-radius:100px;
+      background:${i === idx ? 'var(--green)' : 'var(--border)'};
+      transition:all .3s;">
+    </div>`).join('');
+
+  // ── Spotlight ──
+  if (step.target) {
+    const targetEl = document.getElementById(step.target);
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      const pad  = 6;
+      spot.style.display = 'block';
+      backdrop.style.display = 'none'; // el spotlight ya oscurece con box-shadow
+      spot.style.left   = (rect.left   - pad) + 'px';
+      spot.style.top    = (rect.top    - pad) + 'px';
+      spot.style.width  = (rect.width  + pad * 2) + 'px';
+      spot.style.height = (rect.height + pad * 2) + 'px';
+      _tourPositionCard(card, rect);
+    } else {
+      // target no encontrado: centrar
+      spot.style.display = 'none';
+      backdrop.style.display = 'block';
+      _tourCenterCard(card);
+    }
+  } else {
+    // Sin target: solo backdrop oscuro, card centrado
+    spot.style.display     = 'none';
+    backdrop.style.display = 'block';
+    _tourCenterCard(card);
+  }
+}
+
+// ── _tourPositionCard: coloca la tarjeta cerca del elemento resaltado ──
+function _tourPositionCard(card, rect) {
+  card.style.transform = '';
+  card.style.top       = '';
+  card.style.left      = '';
+  card.style.right     = '';
+  card.style.bottom    = '';
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const cw = 300; // ancho aprox de la tarjeta
+  const ch = 200; // alto aprox de la tarjeta
+  const margin = 18;
+
+  // Intentar colocar a la derecha del elemento
+  if (rect.right + cw + margin < vw) {
+    card.style.left = (rect.right + margin) + 'px';
+    card.style.top  = Math.min(rect.top, vh - ch - margin) + 'px';
+  }
+  // Si no cabe a la derecha, a la izquierda
+  else if (rect.left - cw - margin > 0) {
+    card.style.left = (rect.left - cw - margin) + 'px';
+    card.style.top  = Math.min(rect.top, vh - ch - margin) + 'px';
+  }
+  // Si no cabe a ningún lado, debajo
+  else if (rect.bottom + ch + margin < vh) {
+    card.style.top  = (rect.bottom + margin) + 'px';
+    card.style.left = Math.max(margin, Math.min(rect.left, vw - cw - margin)) + 'px';
+  }
+  // Último recurso: arriba
+  else {
+    card.style.top  = Math.max(margin, rect.top - ch - margin) + 'px';
+    card.style.left = Math.max(margin, Math.min(rect.left, vw - cw - margin)) + 'px';
+  }
+}
+
+// ── _tourCenterCard: centra la tarjeta en la pantalla ──
+function _tourCenterCard(card) {
+  card.style.top       = '50%';
+  card.style.left      = '50%';
+  card.style.right     = '';
+  card.style.bottom    = '';
+  card.style.transform = 'translate(-50%, -50%)';
+}
+
+// ══════════════════════════════════════════════════════════
+// FIN TOUR DE BIENVENIDA
 // ══════════════════════════════════════════════════════════
 
 // Convierte una fila de la tabla "tareas" al formato interno
@@ -1813,17 +2043,23 @@ function renderPosGrid(){
     filtered.sort((a, b) => (popularity[b.id] || 0) - (popularity[a.id] || 0));
   }
 
-  // ══ AGREGADO: calcular el máximo para el badge 🔥 TOP ══
-  const maxPop = Object.values(popularity).length ? Math.max(...Object.values(popularity)) : 0;
+// ══ MODIFICADO: top 3 productos más vendidos reciben badge 🔥 TOP ══
+  const top3Ids = new Set(
+    Object.entries(popularity)
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([id]) => id)
+  );
 
   document.getElementById('pos-grid').innerHTML=filtered.length?filtered.map(p=>{
     const ic=cart.find(c=>c.id===p.id),oos=p.tipo==='producto'&&p.stock===0;
     const codigoBadge = p.codigo
       ? `<div class="pi-codigo">🏷️ ${p.codigo}</div>`
       : '';
-    // ══ AGREGADO: badge naranja solo para el producto #1 más vendido ══
-    const topBadge = (popularity[p.id] && popularity[p.id] === maxPop)
-      ? `<div style="position:absolute;top:4px;right:4px;background:#f97316;color:white;font-size:.55rem;font-weight:800;padding:2px 5px;border-radius:4px;">🔥 TOP</div>`
+    // ══ MODIFICADO 1D: badge TOP en esquina izquierda, sin colisión con cart-badge ══
+    const topBadge = top3Ids.has(String(p.id))
+      ? `<div style="position:absolute;top:4px;left:4px;background:#f97316;color:white;font-size:.55rem;font-weight:800;padding:2px 5px;border-radius:4px;">🔥 TOP</div>`
       : '';
     // ── MODIFICADO: imagen del producto en POS, con fallback a emoji ──
     const posImg = p.imagen_url
@@ -3044,6 +3280,7 @@ async function renderBalanceMonedas(){
   } catch(e){ console.error('Error cargando conversiones para balance:', e); }
   // ── FIN MODIFICADO ──
 
+  // ══ MODIFICADO 1C-extra: bandera real con fi fi-xx igual que el POS ══
   grid.innerHTML = habilitadas
     .filter(c => c !== principal)
     .map(code => {
@@ -3055,8 +3292,9 @@ async function renderBalanceMonedas(){
         <div style="background:var(--surface2);border-radius:var(--r-sm);
           padding:12px 14px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-            <span style="font-size:1.1rem;">${m.pais}</span>
+            ${bandera(m, '1.1rem')}
             <span style="font-weight:700;font-size:.85rem;">${m.code}</span>
+            <span style="font-size:.78rem;color:var(--ink3);">${m.nombre}</span>
           </div>
           <div style="font-weight:800;font-size:1.1rem;">
             ${fmtMoneda(sald, code)}
@@ -3066,6 +3304,7 @@ async function renderBalanceMonedas(){
           </div>
         </div>`;
     }).join('');
+  // ══ FIN MODIFICADO ══
 }
 // ── FIN MODIFICADO renderBalanceMonedas ──
 
@@ -6649,6 +6888,7 @@ function openMasModal() {
 
 function closeMasModal() {
   document.getElementById('mas-modal-overlay')?.classList.remove('open');
+
 }
 
 // ══ FIN MODAL MÁS ══

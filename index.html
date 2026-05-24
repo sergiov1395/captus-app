@@ -609,21 +609,24 @@ html.dark button[onclick="exportReportePDF()"] {
      PC no se toca: grid de 2 columnas intacto.
   ══════════════════════════════════════════════════════ */
 
-  /* ── MODIFICADO: topbar POS móvil en 3 filas: título / TC 2x2 / botón gasto ── */
-  #screen-pos .topbar { flex-wrap: wrap; gap: 6px; padding: 8px 12px; align-items: flex-start; }
-  #screen-pos .topbar > div:first-child { flex: 1 1 100%; }
+  /* ══ MODIFICADO 2B: topbar POS móvil — título en fila, TC en fila, sin botón gasto ══ */
+  #screen-pos .topbar { flex-wrap: wrap; gap: 4px; padding: 8px 12px; align-items: flex-start; }
+  #screen-pos .topbar > div:first-child { flex: 1 1 auto; }
   #screen-pos .topbar-actions {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     gap: 6px;
-    width: 100%;
+    flex: 1 1 auto;
+    justify-content: flex-end;
   }
   #screen-pos #pos-tc-bar {
     display: flex !important;
     align-items: center;
     gap: 6px;
     width: 100%;
+    flex: 1 1 100%;
+    order: 2;
   }
   #screen-pos #pos-tc-pills {
     display: grid !important;
@@ -644,13 +647,10 @@ html.dark button[onclick="exportReportePDF()"] {
     width: 44px !important;
     font-size: .75rem !important;
   }
-  #screen-pos .btn-danger.btn-sm {
-    width: 100%;
-    font-size: .78rem !important;
-    padding: 7px 12px;
-  }
-  #screen-pos .btn-danger.btn-sm::before { content: none; }
-  /* ── FIN MODIFICADO topbar POS móvil ── */
+  /* ══ MODIFICADO 2B: botón gasto oculto en topbar móvil, se muestra en cart-header ══ */
+  #screen-pos .pos-btn-gasto-topbar { display: none; }
+  #screen-pos .pos-btn-gasto-cart   { display: flex !important; }
+  /* ══ FIN MODIFICADO 2B ══ */
 
   /* POS layout: una sola columna, los productos ocupan todo */
   .pos-layout {
@@ -951,6 +951,8 @@ html.dark button[onclick="exportReportePDF()"] {
   #screen-reportes .topbar > div:last-child { flex-wrap: wrap; gap: 5px; width: 100%; }
   #screen-reportes input[type="date"] { font-size: .78rem; padding: 5px 7px; }
   #screen-reportes .btn-ghost.btn-sm { font-size: .72rem; padding: 5px 8px; }
+  /* ══ AGREGADO 2A: ocultar accesos rápidos de fecha en móvil — los inputs ya alcanzan ══ */
+  #screen-reportes .rep-rangos-rapidos { display: none; }
 
   /* Presupuestador: topbar compacto */
   #screen-calc .topbar { padding: 10px 12px; flex-wrap: wrap; gap: 4px; }
@@ -1191,6 +1193,74 @@ html.dark button[onclick="exportReportePDF()"] {
 
 <!-- ══ MODIFICADO v4: arranca oculto (display:none). El JS lo muestra
      solo durante initApp(). Así nunca queda colgado en móvil. ══ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- TOUR DE BIENVENIDA — AGREGADO                         -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="tour-overlay" style="display:none;position:fixed;inset:0;z-index:10000;">
+  <!-- Capa oscura con hueco (spotlight) -->
+  <div id="tour-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.55);pointer-events:none;"></div>
+  <!-- Spotlight highlight -->
+  <div id="tour-spotlight" style="
+    position:absolute;
+    border-radius:12px;
+    box-shadow:0 0 0 4000px rgba(0,0,0,.55);
+    border:2px solid rgba(255,255,255,.35);
+    transition:all .4s cubic-bezier(.4,0,.2,1);
+    pointer-events:none;
+    z-index:10001;">
+  </div>
+  <!-- Tooltip/tarjeta del paso -->
+  <div id="tour-card" style="
+    position:absolute;
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    border-radius:16px;
+    padding:20px 22px;
+    max-width:300px;
+    min-width:240px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+    z-index:10002;
+    transition:all .4s cubic-bezier(.4,0,.2,1);">
+    <!-- Cerrar -->
+    <button onclick="closeTour()" style="
+      position:absolute;top:12px;right:12px;
+      background:none;border:none;cursor:pointer;
+      font-size:1rem;color:var(--ink3);line-height:1;padding:4px;">✕</button>
+    <!-- Emoji -->
+    <div id="tour-emoji" style="font-size:2rem;margin-bottom:10px;line-height:1;">🎉</div>
+    <!-- Título -->
+    <div id="tour-title" style="font-weight:800;font-size:1rem;margin-bottom:6px;line-height:1.3;"></div>
+    <!-- Descripción -->
+    <div id="tour-desc" style="font-size:.84rem;color:var(--ink2);line-height:1.6;margin-bottom:18px;"></div>
+    <!-- Footer: indicadores + botones -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <!-- Dots -->
+      <div id="tour-dots" style="display:flex;gap:5px;"></div>
+      <!-- Botones -->
+      <div style="display:flex;gap:8px;">
+        <button id="tour-btn-prev" onclick="tourPrev()"
+          style="display:none;padding:7px 14px;border-radius:100px;
+            background:var(--surface2);border:1.5px solid var(--border);
+            font-family:var(--font);font-size:.8rem;font-weight:600;
+            color:var(--ink2);cursor:pointer;transition:opacity .15s;">
+          ← Anterior
+        </button>
+        <button id="tour-btn-next" onclick="tourNext()"
+          style="padding:7px 16px;border-radius:100px;
+            background:var(--green);border:none;
+            font-family:var(--font);font-size:.82rem;font-weight:700;
+            color:white;cursor:pointer;transition:opacity .15s;">
+          Siguiente →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- FIN TOUR DE BIENVENIDA                               -->
+<!-- ══════════════════════════════════════════════════════ -->
+
 <div id="loading-screen" style="
   display:none;position:fixed;inset:0;z-index:9999;
   background:var(--bg);flex-direction:column;
@@ -1318,6 +1388,10 @@ html.dark button[onclick="exportReportePDF()"] {
       <button class="btn btn-ghost btn-sm" onclick="navTo('pos')">🛒 Nueva venta</button>
       <button class="btn btn-ghost btn-sm" onclick="openGastoModal()">💸 Gasto</button>
       <button class="btn btn-primary btn-sm" onclick="navTo('tareas');setTimeout(openTaskModal,80)">+ Tarea</button>
+      <!-- ══ AGREGADO: botón sutil para relanzar el tour ══ -->
+      <button class="btn btn-ghost btn-sm" onclick="startTour()" title="Ver tour de la app"
+        style="font-size:.75rem;opacity:.65;padding:5px 10px;">🗺️ Tour</button>
+      <!-- ══ FIN AGREGADO ══ -->
     </div>
     <!-- BÚSQUEDA GLOBAL MÓVIL -->
     <div class="mobile-search-bar" style="display:none;">
@@ -1342,6 +1416,7 @@ html.dark button[onclick="exportReportePDF()"] {
     <!-- ══ NUEVO: Accesos rápidos — SIEMPRE visibles ══ -->
     <div style="margin-bottom:20px;">
       <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;">⚡ Acciones rápidas</div>
+      <!-- ══ MODIFICADO 1A: tarjetas de acción unificadas — solo "Nueva venta" en verde ══ -->
       <div class="grid-3" id="home-acciones-grid">
         <button onclick="navTo('pos')"
           style="background:var(--green);color:white;border:none;border-radius:var(--r);padding:18px 14px;cursor:pointer;font-family:var(--font);text-align:left;display:flex;flex-direction:column;gap:6px;transition:opacity .15s;box-shadow:var(--shadow);"
@@ -1351,20 +1426,21 @@ html.dark button[onclick="exportReportePDF()"] {
           <span style="font-size:.75rem;opacity:.8;">Abrí el punto de venta</span>
         </button>
         <button onclick="openGastoModal()"
-          style="background:var(--red-l);color:var(--red);border:1.5px solid var(--border);border-radius:var(--r);padding:18px 14px;cursor:pointer;font-family:var(--font);text-align:left;display:flex;flex-direction:column;gap:6px;transition:opacity .15s;box-shadow:var(--shadow);"
+          style="background:var(--surface);color:var(--ink);border:1.5px solid var(--border);border-radius:var(--r);padding:18px 14px;cursor:pointer;font-family:var(--font);text-align:left;display:flex;flex-direction:column;gap:6px;transition:opacity .15s;box-shadow:var(--shadow);"
           onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
           <span style="font-size:1.5rem;">💸</span>
           <span style="font-weight:800;font-size:.95rem;">Registrar gasto</span>
-          <span style="font-size:.75rem;opacity:.7;">Anotá un egreso del día</span>
+          <span style="font-size:.75rem;color:var(--ink3);">Anotá un egreso del día</span>
         </button>
         <button onclick="navTo('tareas');setTimeout(openTaskModal,80)"
-          style="background:var(--blue-l);color:var(--blue);border:1.5px solid var(--border);border-radius:var(--r);padding:18px 14px;cursor:pointer;font-family:var(--font);text-align:left;display:flex;flex-direction:column;gap:6px;transition:opacity .15s;box-shadow:var(--shadow);"
+          style="background:var(--surface);color:var(--ink);border:1.5px solid var(--border);border-radius:var(--r);padding:18px 14px;cursor:pointer;font-family:var(--font);text-align:left;display:flex;flex-direction:column;gap:6px;transition:opacity .15s;box-shadow:var(--shadow);"
           onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
           <span style="font-size:1.5rem;">📋</span>
           <span style="font-weight:800;font-size:.95rem;">Nueva tarea</span>
-          <span style="font-size:.75rem;opacity:.7;">Agendá un recordatorio</span>
+          <span style="font-size:.75rem;color:var(--ink3);">Agendá un recordatorio</span>
         </button>
       </div>
+      <!-- ══ FIN MODIFICADO 1A ══ -->
     </div>
 
     <!-- ══ NUEVO: Últimas ventas + Próximas tareas ══ -->
@@ -1408,7 +1484,8 @@ html.dark button[onclick="exportReportePDF()"] {
       </div>
       <!-- ── FIN MODIFICADO TC inline ── -->
       <!-- ── MODIFICADO: botón apunta a openGastoModal() igual que en sección Gastos ── -->
-      <button class="btn btn-danger btn-sm" onclick="openGastoModal()">+ Registrar gasto</button>
+      <!-- ══ MODIFICADO 2B: en móvil este botón se oculta, aparece en el cart-header ══ -->
+      <button class="btn btn-danger btn-sm pos-btn-gasto-topbar" onclick="openGastoModal()">+ Registrar gasto</button>
     </div>
   </div>
   <!-- ── ELIMINADO: bloque separado de pos-tc-bar (ahora está en el topbar) ── -->
@@ -1426,9 +1503,16 @@ html.dark button[onclick="exportReportePDF()"] {
       <div class="pos-grid" id="pos-grid"></div>
     </div>
     <div class="pos-cart">
-      <div class="cart-header">
+      <!-- ══ MODIFICADO 2B: cart-header con botón gasto en móvil ══ -->
+      <div class="cart-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="font-weight:800;font-size:1rem;">&#x1F6D2; Carrito <span id="cart-count-lbl" style="font-weight:400;color:var(--ink3);font-size:.8rem;"></span></div>
+        <button class="btn btn-danger btn-sm pos-btn-gasto-cart"
+          onclick="openGastoModal()"
+          style="display:none;font-size:.75rem;padding:5px 10px;white-space:nowrap;">
+          💸 Gasto
+        </button>
       </div>
+      <!-- ══ FIN MODIFICADO 2B ══ -->
       <div class="cart-items" id="cart-items">
         <div class="empty-state" style="padding:40px 0"><div class="empty-icon">&#x1F6D2;</div><div class="empty-text">Carrito vacío.<br>Agregá productos.</div></div>
       </div>
@@ -1898,8 +1982,9 @@ html.dark button[onclick="exportReportePDF()"] {
     <!-- FILA 1: Saldo / Ingresos / Egresos -->
     <div class="grid-3">
       <div class="balance-hero"><div class="bh-label">Saldo total</div><div class="bh-val" id="bal-total">Gs 0</div></div>
-      <div class="stat-card"><div class="sc-label">Ingresos totales</div><div class="sc-val" style="color:var(--green)" id="bal-ing">Gs 0</div></div>
-      <div class="stat-card"><div class="sc-label">Egresos totales</div><div class="sc-val" style="color:var(--red)" id="bal-egr">Gs 0</div></div>
+      <!-- ══ MODIFICADO 1C: sin color en sc-val ══ -->
+      <div class="stat-card"><div class="sc-label">Ingresos totales</div><div class="sc-val" id="bal-ing">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Egresos totales</div><div class="sc-val" id="bal-egr">Gs 0</div></div>
     </div>
 
     <!-- ══ MODIFICADO: nuevo layout de 2 columnas                            ══ -->
@@ -1913,10 +1998,11 @@ html.dark button[onclick="exportReportePDF()"] {
         <!-- Apartado 3: Diferencia de cambio (ARRIBA) -->
         <!-- ++ MOVIDO: antes estaba debajo de "Saldos por moneda", ahora va arriba ++ -->
         <div id="bal-dif-cambio-wrap" style="display:none;">
-          <div class="card" style="border-left:4px solid var(--amber);padding:14px 16px;">
+          <!-- ══ MODIFICADO 1B: sin border-left de acento ══ -->
+          <div class="card" style="padding:14px 16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
               <div>
-                <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:2px;">📊 Diferencia de cambio</div>
+                <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:2px;">📊 Diferencia de cambio</div>
                 <div style="font-size:.72rem;color:var(--ink3);">Últimas conversiones</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px;">
@@ -2015,6 +2101,7 @@ html.dark button[onclick="exportReportePDF()"] {
     <div><div class="topbar-title">Reportes</div></div>
     <!-- ── MODIFICADO: se agregó div flex con period-btns + botones export ── -->
    <!-- ══ MODIFICADO: botones Hoy/Semana/Mes → selector rango de fechas ══ -->
+    <!-- ══ MODIFICADO 2A: topbar Reportes limpia — exportar agrupado ══ -->
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <!-- Selector Desde -->
       <div style="display:flex;align-items:center;gap:5px;">
@@ -2034,23 +2121,46 @@ html.dark button[onclick="exportReportePDF()"] {
             background:var(--surface);color:var(--ink);font-size:.82rem;
             font-family:var(--font);outline:none;cursor:pointer;">
       </div>
-      <!-- Accesos rápidos -->
-      <div style="display:flex;gap:5px;">
+      <!-- Accesos rápidos — ocultos en móvil via CSS -->
+      <div class="rep-rangos-rapidos" style="display:flex;gap:5px;">
         <button class="btn btn-ghost btn-sm" onclick="setRangoRapido('hoy')">Hoy</button>
         <button class="btn btn-ghost btn-sm" onclick="setRangoRapido('semana')">7 días</button>
         <button class="btn btn-ghost btn-sm" onclick="setRangoRapido('mes')">Este mes</button>
       </div>
-      <!-- ══ botones de exportación (sin cambios) ══ -->
-      <button class="btn btn-ghost btn-sm" onclick="exportReporteExcel()"
-        title="Exportar a Excel"
-        style="background:var(--green-l,#dcfce7);color:#166534;border:1px solid #bbf7d0;">
-        📊 Excel
-      </button>
-      <button class="btn btn-ghost btn-sm" onclick="exportReportePDF()"
-        title="Exportar a PDF"
-        style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;">
-        📄 PDF
-      </button>
+      <!-- ══ MODIFICADO 2A: botón único Exportar con menú desplegable ══ -->
+      <div style="position:relative;">
+        <button class="btn btn-ghost btn-sm" onclick="toggleExportMenu(event)"
+          id="btn-exportar-rep"
+          style="gap:5px;">
+          ⬇️ Exportar ▾
+        </button>
+        <div id="export-menu" style="
+          display:none;position:absolute;top:calc(100% + 6px);right:0;
+          background:var(--surface);border:1.5px solid var(--border);
+          border-radius:var(--r-sm);box-shadow:var(--shadow);
+          z-index:100;min-width:140px;overflow:hidden;">
+          <button onclick="exportReporteExcel();closeExportMenu()"
+            style="width:100%;padding:9px 14px;background:none;border:none;
+              font-family:var(--font);font-size:.85rem;font-weight:600;
+              color:var(--ink);cursor:pointer;text-align:left;display:flex;
+              align-items:center;gap:8px;"
+            onmouseover="this.style.background='var(--surface2)'"
+            onmouseout="this.style.background='none'">
+            📊 Excel
+          </button>
+          <div style="height:1px;background:var(--border);margin:0 10px;"></div>
+          <button onclick="exportReportePDF();closeExportMenu()"
+            style="width:100%;padding:9px 14px;background:none;border:none;
+              font-family:var(--font);font-size:.85rem;font-weight:600;
+              color:var(--ink);cursor:pointer;text-align:left;display:flex;
+              align-items:center;gap:8px;"
+            onmouseover="this.style.background='var(--surface2)'"
+            onmouseout="this.style.background='none'">
+            📄 PDF
+          </button>
+        </div>
+      </div>
+      <!-- ══ FIN MODIFICADO 2A ══ -->
     </div>
     <!-- ══ FIN MODIFICADO ══ -->
   </div>
@@ -2065,9 +2175,10 @@ html.dark button[onclick="exportReportePDF()"] {
     <!-- ══════════════════════════════════════════════════════ -->
     <div class="grid-4" style="margin-bottom:12px;">
       <div class="stat-card"><div class="sc-label">Ventas</div><div class="sc-val" id="rep-v">0</div></div>
-      <div class="stat-card"><div class="sc-label">Ingresos</div><div class="sc-val" style="color:var(--green)" id="rep-i">Gs 0</div></div>
-      <div class="stat-card"><div class="sc-label">Gastos</div><div class="sc-val" style="color:var(--red)" id="rep-g">Gs 0</div></div>
-      <div class="stat-card"><div class="sc-label">Ganancia</div><div class="sc-val" style="color:var(--green)" id="rep-gan">Gs 0</div></div>
+      <!-- ══ MODIFICADO 1C: sin color en sc-val ══ -->
+      <div class="stat-card"><div class="sc-label">Ingresos</div><div class="sc-val" id="rep-i">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Gastos</div><div class="sc-val" id="rep-g">Gs 0</div></div>
+      <div class="stat-card"><div class="sc-label">Ganancia</div><div class="sc-val" id="rep-gan">Gs 0</div></div>
     </div>
 
     <!-- Desglose por moneda — solo aparece si hay ventas en moneda secundaria -->
@@ -2083,12 +2194,13 @@ html.dark button[onclick="exportReportePDF()"] {
 
     <!-- Sección diferencia de cambio -->
     <div id="rep-dif-cambio-wrap" style="display:none;margin-bottom:16px;">
-      <div class="card" style="border-left:4px solid var(--amber);padding:14px 18px;">
+      <!-- ══ MODIFICADO 1B: sin border-left de acento ══ -->
+      <div class="card" style="padding:14px 18px;">
         <div style="display:flex;align-items:center;justify-content:space-between;
           flex-wrap:wrap;gap:10px;margin-bottom:12px;">
           <div>
             <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;
-              letter-spacing:.1em;color:var(--amber);margin-bottom:2px;">
+              letter-spacing:.1em;color:var(--ink3);margin-bottom:2px;">
               📊 Diferencia de cambio del período
             </div>
             <div style="font-size:.78rem;color:var(--ink3);">
@@ -3149,5 +3261,22 @@ html.dark button[onclick="exportReportePDF()"] {
 <!-- ══════════════════════════════════════════════════════ -->
 
 <script src="captus-app.js"></script>
+<!-- ══ AGREGADO 2A: funciones del menú exportar — inline para disponibilidad inmediata ══ -->
+<script>
+function toggleExportMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('export-menu');
+  const abierto = menu.style.display === 'block';
+  menu.style.display = abierto ? 'none' : 'block';
+  if (!abierto) {
+    setTimeout(() => document.addEventListener('click', closeExportMenu, { once: true }), 0);
+  }
+}
+function closeExportMenu() {
+  const menu = document.getElementById('export-menu');
+  if (menu) menu.style.display = 'none';
+}
+</script>
+<!-- ══ FIN AGREGADO 2A ══ -->
 </body>
 </html>
