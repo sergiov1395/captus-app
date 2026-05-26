@@ -237,164 +237,95 @@ async function renderPantallaPlan() {
     return;
   }
 
+  // ── MODIFICADO: textos actualizados, modo oscuro mejorado, "Demo" en lugar de "Plan Gratis" ──
   try {
     const planId    = sus.plan_id;
-    
     const planNombre = sus.planes?.nombre || planId;
-    
     const features   = sus.planes?.features || [];
-    
-    const badgeColor = { 'gratis':'var(--ink3)', 'pro':'var(--blue)', 'interno':'var(--purple)' }[planId] || 'var(--ink3)';
-    const badgeBg    = { 'gratis':'var(--surface2)', 'pro':'var(--blue-l)', 'interno':'var(--purple-l)' }[planId] || 'var(--surface2)';
+
+    // Badge: colores con buen contraste en modo oscuro
+    const badgeColor = {
+      'gratis':  'var(--ink)',
+      'pro':     'var(--blue)',
+      'interno': 'var(--purple)',
+    }[planId] || 'var(--ink)';
+
+    const badgeBg = {
+      'gratis':  'var(--surface2)',
+      'pro':     'var(--blue-l)',
+      'interno': 'var(--purple-l)',
+    }[planId] || 'var(--surface2)';
+
     const featureLabels = {
-      'pos':'🛒 Punto de venta','productos_50':'📦 Hasta 50 productos',
-      'productos_ilimitados':'📦 Productos ilimitados','clientes_20':'👥 Hasta 20 clientes',
-      'clientes_ilimitados':'👥 Clientes ilimitados','reportes_basicos':'📊 Reportes básicos',
-      'reportes_avanzados':'📈 Reportes avanzados','catalogo':'🌐 Catálogo público',
-      'cuenta_corriente':'💳 Cuentas corrientes','calculadora_impresion':'🧮 Presupuestador',
-      'admin_panel':'⚙️ Panel de administración',
+      'pos':                   '🛒 Punto de venta',
+      'productos_50':          '📦 Hasta 50 productos',
+      'productos_ilimitados':  '📦 Productos ilimitados',
+      'clientes_20':           '👥 Hasta 20 clientes',
+      'clientes_ilimitados':   '👥 Clientes ilimitados',
+      'reportes_basicos':      '📊 Reportes básicos',
+      'reportes_avanzados':    '📈 Reportes avanzados',
+      'catalogo':              '🌐 Catálogo público',
+      'cuenta_corriente':      '💳 Cuentas corrientes',
+      'calculadora_impresion': '🧮 Presupuestador',
+      'admin_panel':           '⚙️ Panel de administración',
     };
-    
+
+    // CAMBIADO: nombre visible del plan — "gratis" → "Demo"
+    const planLabel = planId === 'gratis' ? 'Demo' : planNombre;
+    const planEmoji = planId === 'interno' ? '⭐' : planId === 'pro' ? '🚀' : '🎁';
+
     el.innerHTML = `
+      <!-- Badge plan actual -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
         <div style="background:${badgeBg};color:${badgeColor};border-radius:100px;padding:6px 16px;font-weight:800;font-size:.9rem;">
-          ${planId === 'interno' ? '⭐' : planId === 'pro' ? '🚀' : '🎁'} ${planNombre}
+          ${planEmoji} ${planLabel}
         </div>
-        <div style="font-size:.8rem;color:var(--ink3);">
+        <div style="font-size:.8rem;color:var(--ink2);">
           Estado: <strong style="color:${sus.estado === 'activa' ? 'var(--green)' : 'var(--red)'};">${sus.estado}</strong>
         </div>
       </div>
+
+      <!-- Features del plan actual -->
       <div class="card" style="margin-bottom:20px;">
         <div class="card-title">✅ Incluido en tu plan</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-          ${features.map(f => `<div style="font-size:.83rem;padding:6px 8px;background:var(--green-l);border-radius:var(--r-sm);color:#166534;">${featureLabels[f] || f}</div>`).join('')}
+          ${features.map(f => `
+            <div style="font-size:.83rem;padding:6px 8px;
+              background:var(--green-l);border-radius:var(--r-sm);
+              color:var(--green);">
+              ${featureLabels[f] || f}
+            </div>`).join('')}
         </div>
       </div>
+
+      <!-- Banner según plan -->
       ${planId === 'interno' ? `
-        <div style="background:var(--purple-l);border-radius:var(--r);padding:16px;border:1.5px solid #c4b5fd;">
-          <div style="font-weight:800;color:#6d28d9;margin-bottom:4px;">⭐ Plan Interno</div>
-          <div style="font-size:.83rem;color:#7c3aed;">Tenés acceso completo a todas las funciones de Nomi.</div>
+        <div style="background:var(--purple-l);border-radius:var(--r);padding:16px;
+          border:1.5px solid #c4b5fd;margin-bottom:20px;">
+          <div style="font-weight:800;color:var(--purple);margin-bottom:4px;">⭐ Plan Interno</div>
+          <div style="font-size:.83rem;color:var(--ink2);">
+            Tenés acceso completo a todas las funciones de Captus.
+          </div>
         </div>` : planId === 'pro' ? `
-        <div style="background:var(--blue-l);border-radius:var(--r);padding:16px;border:1.5px solid #93c5fd;">
-          <div style="font-weight:800;color:#1d4ed8;margin-bottom:4px;">🚀 Plan Pro activo</div>
-          <div style="font-size:.83rem;color:#2563eb;">Tenés acceso a todas las funciones disponibles.</div>
+        <div style="background:var(--blue-l);border-radius:var(--r);padding:16px;
+          border:1.5px solid #93c5fd;margin-bottom:20px;">
+          <div style="font-weight:800;color:var(--blue);margin-bottom:4px;">🚀 Plan Pro activo</div>
+          <div style="font-size:.83rem;color:var(--ink2);">
+            Tenés acceso a todas las funciones disponibles.
+          </div>
         </div>` : `
         <div style="margin-bottom:20px;">
           <button class="btn btn-primary" style="width:100%;" onclick="solicitarUpgrade()">
-            ⬆️ Hacer Upgrade a Pro — Gs 150.000/mes
+            ⬆️ Actualizar al Plan Pro
           </button>
         </div>`}
     `;
-    
+
   } catch(err) {
     console.error('DEBUG error en render:', err);
     el.innerHTML = '<div class="empty-state">Error al renderizar: ' + err.message + '</div>';
   }
-
-  const planId    = sus.plan_id;
-  const planNombre = sus.planes?.nombre || planId;
-  const planPrecio = sus.planes?.precio_gs || 0;
-  const features   = sus.planes?.features || [];
-
-  // ── Badge de color según plan ──
-  const badgeColor = {
-    'gratis':   'var(--ink3)',
-    'pro':      'var(--blue)',
-    'interno':  'var(--purple)',
-  }[planId] || 'var(--ink3)';
-
-  const badgeBg = {
-    'gratis':   'var(--surface2)',
-    'pro':      'var(--blue-l)',
-    'interno':  'var(--purple-l)',
-  }[planId] || 'var(--surface2)';
-
-  // ── Labels amigables para cada feature ──
-  const featureLabels = {
-    'pos':                     '🛒 Punto de venta',
-    'productos_50':            '📦 Hasta 50 productos',
-    'productos_ilimitados':    '📦 Productos ilimitados',
-    'clientes_20':             '👥 Hasta 20 clientes',
-    'clientes_ilimitados':     '👥 Clientes ilimitados',
-    'reportes_basicos':        '📊 Reportes básicos',
-    'reportes_avanzados':      '📈 Reportes avanzados + gráficos',
-    'catalogo':                '🌐 Catálogo público',
-    'cuenta_corriente':        '💳 Cuentas corrientes / Fiado',
-    'calculadora_impresion':   '🧮 Presupuestador de impresión',
-    'admin_panel':             '⚙️ Panel de administración',
-  };
-
-  // ── Comparación de planes (excluye 'interno' de la vista pública) ──
-  const planesPublicos = (todosPlanes || []).filter(p => p.id !== 'interno');
-
-  const planesHTML = planesPublicos.map(plan => {
-    const esCurrent = plan.id === planId;
-    const fs = plan.features || [];
-    return `
-      <div style="border:1.5px solid ${esCurrent ? 'var(--ink)' : 'var(--border)'};
-        border-radius:var(--r);padding:18px;background:${esCurrent ? 'var(--surface2)' : 'var(--surface)'};">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="font-weight:800;font-size:1rem;">${plan.nombre}</div>
-          ${esCurrent ? `<span style="background:var(--green-l);color:var(--green);border-radius:100px;padding:2px 10px;font-size:.72rem;font-weight:700;">Tu plan actual</span>` : ''}
-        </div>
-        <div style="font-size:1.3rem;font-weight:800;margin-bottom:4px;">
-          ${plan.precio_gs === 0 ? 'Gratis' : 'Gs ' + plan.precio_gs.toLocaleString('es-PY') + '<span style="font-size:.8rem;font-weight:500;color:var(--ink3);">/mes</span>'}
-        </div>
-        <div style="font-size:.78rem;color:var(--ink3);margin-bottom:12px;">${plan.descripcion || ''}</div>
-        ${fs.map(f => `<div style="font-size:.8rem;padding:3px 0;color:var(--ink2);">✅ ${featureLabels[f] || f}</div>`).join('')}
-        ${!esCurrent && plan.id === 'pro' ? `
-          <button class="btn btn-primary btn-sm" style="width:100%;margin-top:14px;" onclick="solicitarUpgrade()">
-            ⬆️ Upgrade a Pro
-          </button>` : ''}
-      </div>`;
-  }).join('');
-
-  el.innerHTML = `
-    <!-- Badge plan actual -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-      <div style="background:${badgeBg};color:${badgeColor};border-radius:100px;
-        padding:6px 16px;font-weight:800;font-size:.9rem;">
-        ${planId === 'interno' ? '⭐' : planId === 'pro' ? '🚀' : '🎁'} ${planNombre}
-      </div>
-      <div style="font-size:.8rem;color:var(--ink3);">
-        Estado: <strong style="color:${sus.estado === 'activa' ? 'var(--green)' : 'var(--red)'};">${sus.estado}</strong>
-      </div>
-    </div>
-
-    <!-- Features del plan actual -->
-    <div class="card" style="margin-bottom:20px;">
-      <div class="card-title">✅ Incluido en tu plan</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-        ${features.map(f => `
-          <div style="font-size:.83rem;padding:6px 8px;background:var(--green-l);
-            border-radius:var(--r-sm);color:#166534;">
-            ${featureLabels[f] || f}
-          </div>`).join('')}
-      </div>
-    </div>
-
-    <!-- Banner plan interno o botón upgrade -->
-    ${planId === 'interno' ? `
-      <div style="background:var(--purple-l);border-radius:var(--r);padding:16px;
-        border:1.5px solid #c4b5fd;margin-bottom:20px;">
-        <div style="font-weight:800;color:#6d28d9;margin-bottom:4px;">⭐ Plan Interno</div>
-        <div style="font-size:.83rem;color:#7c3aed;">
-          Tenés acceso completo a todas las funciones de Nomi.
-        </div>
-      </div>` : planId === 'pro' ? `
-      <div style="background:var(--blue-l);border-radius:var(--r);padding:16px;
-        border:1.5px solid #93c5fd;margin-bottom:20px;">
-        <div style="font-weight:800;color:#1d4ed8;margin-bottom:4px;">🚀 Plan Pro activo</div>
-        <div style="font-size:.83rem;color:#2563eb;">
-          Tenés acceso a todas las funciones disponibles.
-        </div>
-      </div>` : `
-      <div style="margin-bottom:20px;">
-        <button class="btn btn-primary" style="width:100%;" onclick="solicitarUpgrade()">
-          ⬆️ Hacer Upgrade a Pro — Gs 150.000/mes
-        </button>
-      </div>`}
-  `;
+  // ── FIN MODIFICADO ──
 }
 
 // ── solicitarUpgrade: abre el modal de pago manual (Módulo C) ──
@@ -621,6 +552,10 @@ const [
     DB.gastos             = gastos             || [];
     // ── AGREGADO ──
     DB.cuentasCorrientes  = cuentasCorrientes  || [];
+    // ── LÍNEA AGREGADA: inicializar caché de proveedores ──
+    DB.deudasProveedores  = [];
+    // ── LÍNEA AGREGADA: cargar proveedores en segundo plano ──
+    loadDeudasProveedores();
 
     // Reconstruir ventas con sus items anidados
     // (igual que el formato original: venta.items = [...])
@@ -1340,7 +1275,7 @@ if(s==='inicio') renderInicio();
   if(s==='balance') renderBalance();
   if(s==='reportes') renderReportes();
   if(s==='calc') initCalc();
-  if(s==='config') loadConfig();
+  if(s==='config'){ loadConfig(); setTimeout(initAccordiones, 50); }
   // ── AGREGADO ──
   if(s==='fiado') renderFiado();
   // ── AGREGADO ETAPA 4: pantalla Mi Plan ──
@@ -3297,7 +3232,7 @@ async function renderBalanceMonedas(){
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             ${bandera(m, '1.1rem')}
             <span style="font-weight:700;font-size:.85rem;">${m.code}</span>
-            <span style="font-size:.78rem;color:var(--ink3);">${m.nombre}</span>
+            <!-- ══ MODIFICADO: eliminado span con m.nombre (nombre largo de la moneda) ══ -->
           </div>
           <div style="font-weight:800;font-size:1.1rem;">
             ${fmtMoneda(sald, code)}
@@ -5194,6 +5129,96 @@ function loadConfigMonedas() {
 // FIN FASE 1 MULTI-MONEDA
 // ══════════════════════════════════════════════════════════
 
+// ══ AGREGADO: Acordeón configuración ══
+function toggleAccordion(id) {
+  const body = document.getElementById(id);
+  const icon = document.getElementById(id + '-icon');
+  if (!body) return;
+  const collapsed = body.classList.toggle('collapsed');
+  if (icon) icon.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+  // Guardar estado abierto/cerrado en sessionStorage para recordar entre navegaciones
+  try { sessionStorage.setItem('acc_' + id, collapsed ? '1' : '0'); } catch(e){}
+}
+
+// Restaurar estados de acordeones al navegar a configuración
+function initAccordiones() {
+  ['acc-negocio','acc-monedas','acc-zonahoraria','acc-impresora'].forEach(id => {
+    const body = document.getElementById(id);
+    const icon = document.getElementById(id + '-icon');
+    if (!body) return;
+    try {
+      const wasCollapsed = sessionStorage.getItem('acc_' + id) === '1';
+      if (wasCollapsed) {
+        body.classList.add('collapsed');
+        if (icon) icon.style.transform = 'rotate(-90deg)';
+      } else {
+        body.classList.remove('collapsed');
+        if (icon) icon.style.transform = 'rotate(0deg)';
+      }
+    } catch(e){}
+  });
+}
+
+// ══ AGREGADO: WhatsApp soporte ══
+function abrirWhatsAppSoporte() {
+  // Cambiá este número por el número real de soporte de Captus (con código de país, sin +)
+  const numero = '595981000000';
+  const mensaje = encodeURIComponent('Hola Captus, necesito ayuda con la app. 🙏');
+  window.open('https://wa.me/' + numero + '?text=' + mensaje, '_blank');
+}
+
+// ══ AGREGADO: Botón "Agregar a inicio" (PWA + fallback escritorio) ══
+let _pwaPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  // Mostrar el botón "Agregar a inicio" solo si hay prompt disponible (Android/Chrome)
+  const btn = document.getElementById('btn-instalar-app');
+  if (btn) btn.style.display = 'inline-flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  _pwaPrompt = null;
+  const btn = document.getElementById('btn-instalar-app');
+  if (btn) btn.style.display = 'none';
+});
+
+function instalarApp() {
+  if (_pwaPrompt) {
+    _pwaPrompt.prompt();
+    _pwaPrompt.userChoice.then(() => { _pwaPrompt = null; });
+  }
+}
+
+function mostrarInstruccionesFavoritos() {
+  const esMovil = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const esSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+  let msg = '';
+  if (esMovil && esSafari) {
+    msg = 'En Safari: tocá el botón compartir (□↑) y luego "Agregar a pantalla de inicio".';
+  } else if (esMovil) {
+    msg = 'En tu navegador: tocá el menú (⋮ o ...) y buscá "Agregar a pantalla de inicio" o "Instalar app".';
+  } else {
+    msg = 'En Chrome/Edge de PC: hacé clic en el ícono ⊕ que aparece en la barra de dirección, o andá a Menú → "Instalar Captus". En otros navegadores, presioná Ctrl+D para guardar en favoritos.';
+  }
+  alert('📲 ' + msg);
+}
+
+// Detectar si NO hay PWA prompt disponible y mostrar botón de favoritos como fallback (en desktop)
+document.addEventListener('DOMContentLoaded', () => {
+  // Esperamos un poco para ver si llega el beforeinstallprompt
+  setTimeout(() => {
+    const btnInstalar = document.getElementById('btn-instalar-app');
+    const btnFavoritos = document.getElementById('btn-favoritos-app');
+    // Si no llegó el prompt, mostrar botón de favoritos
+    if (!_pwaPrompt && btnFavoritos) {
+      btnFavoritos.style.display = 'inline-flex';
+    }
+  }, 1200);
+});
+// ══ FIN AGREGADO ══
+
 async function saveConfig(){
   const nombre=document.getElementById('cfg-nombre').value.trim()||'Mi Negocio';
   // ── FASE 1 MULTI-MONEDA: leer valores de moneda antes de guardar ──
@@ -6552,6 +6577,469 @@ const _renderInicioOrig = typeof renderInicio === 'function' ? renderInicio : nu
 
 // ══════════════════════════════════════════════════════════
 // FIN MÓDULO CUENTAS CORRIENTES / FIADO ▲▲▲
+// ══════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════
+// MÓDULO A PAGAR / PROVEEDORES ── NUEVO COMPLETO ──
+// ══════════════════════════════════════════════════════════
+
+// ── Estado del módulo ──
+let fiadoMainTab = 'cobrar';   // 'cobrar' | 'pagar'
+let provTab      = 'pendiente'; // 'pendiente' | 'pagado'
+let provActual   = null;        // deuda con proveedor abierta
+
+// ── MODIFICADO: ampliar DB para incluir proveedores ──
+// (Se llama desde initApp después de cargar el resto de datos)
+// ── LÍNEA AGREGADA: inicializar caché vacía en DB ──
+DB.deudasProveedores = [];
+
+// ──────────────────────────────────────────────────────────
+// Cargar deudas de proveedores desde Supabase
+// ──────────────────────────────────────────────────────────
+async function loadDeudasProveedores() {
+  if (!negocioId) return;
+  const { data, error } = await sb
+    .from('deudas_proveedores')
+    .select('*')
+    .eq('negocio_id', negocioId)
+    .order('fecha', { ascending: false });
+  if (error) { console.error('Error cargando deudas proveedores:', error); return; }
+  DB.deudasProveedores = data || [];
+}
+
+// ──────────────────────────────────────────────────────────
+// Navega entre los dos paneles principales (A Cobrar / A Pagar)
+// ──────────────────────────────────────────────────────────
+function setFiadoMainTab(tab, btn) {
+  fiadoMainTab = tab;
+
+  // Activar botón correcto
+  document.querySelectorAll('#screen-fiado .fiado-row3 .seg-btn')
+    .forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Mostrar/ocultar paneles
+  document.getElementById('panel-cobrar').style.display = tab === 'cobrar' ? '' : 'none';
+  document.getElementById('panel-pagar').style.display  = tab === 'pagar'  ? '' : 'none';
+
+  if (tab === 'pagar') renderProveedores();
+  if (tab === 'cobrar') renderFiado();
+}
+
+// ──────────────────────────────────────────────────────────
+// Cambia sub-tab Pendientes / Pagados en A Pagar
+// ──────────────────────────────────────────────────────────
+function setProvTab(tab, btn) {
+  provTab = tab;
+  document.querySelectorAll('#panel-pagar .segment .seg-btn')
+    .forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProveedores();
+}
+
+// ──────────────────────────────────────────────────────────
+// Render principal del panel A Pagar
+// ──────────────────────────────────────────────────────────
+function renderProveedores() {
+  updateBadgesPagar();
+
+  const q          = (document.getElementById('pagar-search')?.value || '').trim().toLowerCase();
+  const hoy        = new Date(); hoy.setHours(0,0,0,0);
+  const en3dias    = new Date(hoy); en3dias.setDate(en3dias.getDate() + 3);
+
+  const todas      = DB.deudasProveedores || [];
+  const pendientes = todas.filter(d => d.estado === 'pendiente');
+  const pagadas    = todas.filter(d => d.estado === 'pagado');
+
+  // ── Tarjetas resumen ──
+  const totalPend  = pendientes.reduce((s, d) => s + (d.monto_original - d.monto_pagado), 0);
+  const provUnicos = [...new Set(pendientes.map(d => d.proveedor_nombre))].length;
+  const totalPagado = todas.reduce((s, d) => s + d.monto_pagado, 0);
+
+  document.getElementById('pagar-total-pendiente').textContent   = fmtGs(totalPend);
+  document.getElementById('pagar-proveedores-deuda').textContent = provUnicos;
+  document.getElementById('pagar-total-pagado').textContent      = fmtGs(totalPagado);
+
+  // ── Alerta de vencimientos próximos ──
+  const proxVencer = pendientes.filter(d => {
+    if (!d.fecha_vencimiento) return false;
+    const fv = new Date(d.fecha_vencimiento); fv.setHours(0,0,0,0);
+    return fv <= en3dias;
+  });
+  const alertaEl = document.getElementById('pagar-alertas-venc');
+  if (proxVencer.length > 0) {
+    const vencidos  = proxVencer.filter(d => { const fv = new Date(d.fecha_vencimiento); fv.setHours(0,0,0,0); return fv < hoy; });
+    const porVencer = proxVencer.filter(d => { const fv = new Date(d.fecha_vencimiento); fv.setHours(0,0,0,0); return fv >= hoy; });
+    let txt = '';
+    if (vencidos.length)  txt += `⚠️ ${vencidos.length} deuda${vencidos.length>1?'s':''} vencida${vencidos.length>1?'s':''}. `;
+    if (porVencer.length) txt += `🔔 ${porVencer.length} vence${porVencer.length>1?'n':''} en los próximos 3 días.`;
+    alertaEl.textContent  = txt.trim();
+    alertaEl.style.display = '';
+  } else {
+    alertaEl.style.display = 'none';
+  }
+
+  // ── Lista según sub-tab activo ──
+  const lista   = document.getElementById('pagar-list');
+  const fuente  = provTab === 'pendiente' ? pendientes : pagadas;
+  const filtrada = q ? fuente.filter(d => (d.proveedor_nombre || '').toLowerCase().includes(q)) : fuente;
+
+  if (!filtrada.length) {
+    lista.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">${provTab === 'pendiente' ? '🎉' : '📭'}</div>
+      <div class="empty-text">${provTab === 'pendiente' ? '¡Sin deudas pendientes con proveedores!' : 'Sin pagos registrados aún.'}</div>
+    </div>`;
+    return;
+  }
+
+  lista.innerHTML = filtrada.map(d => {
+    const debe  = d.monto_original - d.monto_pagado;
+    const pct   = Math.round((d.monto_pagado / d.monto_original) * 100);
+    let vencBadge = '';
+    if (d.fecha_vencimiento && d.estado === 'pendiente') {
+      const fv  = new Date(d.fecha_vencimiento); fv.setHours(0,0,0,0);
+      const diff = Math.round((fv - hoy) / 86400000);
+      if (diff < 0)
+        vencBadge = `<span class="tag tag-red" style="font-size:.62rem;">🔴 Vencida</span>`;
+      else if (diff === 0)
+        vencBadge = `<span class="tag tag-red" style="font-size:.62rem;">🔴 Vence hoy</span>`;
+      else if (diff <= 3)
+        vencBadge = `<span class="tag tag-amber" style="font-size:.62rem;">🟡 Vence en ${diff}d</span>`;
+      else
+        vencBadge = `<span class="tag tag-blue" style="font-size:.62rem;">📅 ${fmtDate(d.fecha_vencimiento)}</span>`;
+    }
+
+    if (d.estado === 'pagado') {
+      return `<div class="card" style="margin-bottom:10px;opacity:.75;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-weight:800;font-size:.92rem;">🏪 ${d.proveedor_nombre}</div>
+            ${d.descripcion ? `<div style="font-size:.75rem;color:var(--ink3);margin-top:2px;">${d.descripcion}</div>` : ''}
+            <div style="font-size:.72rem;color:var(--ink3);margin-top:2px;">${fmtDate(d.fecha)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:800;font-size:.95rem;color:var(--green);">${fmtGs(d.monto_original)}</div>
+            <span class="tag tag-green" style="font-size:.62rem;margin-top:4px;display:inline-block;">✅ Pagado</span>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    return `<div class="card" style="margin-bottom:10px;cursor:pointer;" onclick="openProvDetail(${d.id})">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:800;font-size:.92rem;">🏪 ${d.proveedor_nombre}</div>
+          ${d.descripcion ? `<div style="font-size:.75rem;color:var(--ink3);margin-top:2px;">${d.descripcion}</div>` : ''}
+          <div style="font-size:.72rem;color:var(--ink3);margin-top:2px;">${fmtDate(d.fecha)}</div>
+          <div style="margin-top:8px;height:5px;background:var(--border);border-radius:100px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:var(--green);border-radius:100px;"></div>
+          </div>
+          <div style="font-size:.7rem;color:var(--ink3);margin-top:3px;">${pct}% pagado</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-weight:800;font-size:1rem;color:var(--amber);">${fmtGs(debe)}</div>
+          <div style="font-size:.72rem;color:var(--ink3);">de ${fmtGs(d.monto_original)}</div>
+          <div style="margin-top:6px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <span class="tag tag-amber" style="font-size:.62rem;">⏳ Pendiente</span>
+            ${vencBadge}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────────────────────
+// Actualiza los badges de cantidad en los tabs principales
+// ──────────────────────────────────────────────────────────
+function updateBadgesPagar() {
+  // Badge A Cobrar (clientes)
+  const pendCC = (DB.cuentasCorrientes || []).filter(c => c.estado === 'pendiente').length;
+  const nbCobrar = document.getElementById('nb-cobrar');
+  if (nbCobrar) {
+    nbCobrar.textContent  = pendCC;
+    nbCobrar.style.display = pendCC > 0 ? '' : 'none';
+  }
+
+  // Badge A Pagar (proveedores)
+  const pendProv = (DB.deudasProveedores || []).filter(d => d.estado === 'pendiente').length;
+  const nbPagar = document.getElementById('nb-pagar');
+  if (nbPagar) {
+    nbPagar.textContent  = pendProv;
+    nbPagar.style.display = pendProv > 0 ? '' : 'none';
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Abre el modal para crear o editar una deuda con proveedor
+// ──────────────────────────────────────────────────────────
+function openProveedorModal(id = null) {
+  const titulo = document.getElementById('prov-modal-titulo');
+  document.getElementById('prov-edit-id').value  = id || '';
+  document.getElementById('prov-nombre').value   = '';
+  document.getElementById('prov-desc').value     = '';
+  document.getElementById('prov-monto').value    = '';
+  document.getElementById('prov-vencimiento').value = '';
+
+  // Fecha por defecto: hoy
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('prov-fecha').value = hoy;
+
+  if (id) {
+    const d = DB.deudasProveedores.find(x => x.id === id);
+    if (!d) return;
+    titulo.textContent = '✏️ Editar deuda con proveedor';
+    document.getElementById('prov-nombre').value      = d.proveedor_nombre;
+    document.getElementById('prov-desc').value        = d.descripcion || '';
+    document.getElementById('prov-monto').value       = d.monto_original;
+    document.getElementById('prov-fecha').value       = d.fecha;
+    document.getElementById('prov-vencimiento').value = d.fecha_vencimiento || '';
+  } else {
+    titulo.textContent = '📤 Nueva deuda con proveedor';
+  }
+
+  openModal('proveedor-modal-overlay');
+}
+
+// ──────────────────────────────────────────────────────────
+// Guarda una deuda nueva o edición en Supabase
+// ──────────────────────────────────────────────────────────
+async function saveProveedorDeuda() {
+  const editId    = document.getElementById('prov-edit-id').value;
+  const nombre    = document.getElementById('prov-nombre').value.trim();
+  const desc      = document.getElementById('prov-desc').value.trim();
+  const monto     = parseFloat(document.getElementById('prov-monto').value);
+  const fecha     = document.getElementById('prov-fecha').value;
+  const vencim    = document.getElementById('prov-vencimiento').value || null;
+
+  if (!nombre)       { showToast('⚠️ Ingresá el nombre del proveedor'); return; }
+  if (!monto || monto <= 0) { showToast('⚠️ Ingresá un monto válido'); return; }
+  if (!fecha)        { showToast('⚠️ Ingresá la fecha'); return; }
+
+  const payload = {
+    negocio_id:        negocioId,
+    proveedor_nombre:  nombre,
+    descripcion:       desc || null,
+    monto_original:    monto,
+    fecha,
+    fecha_vencimiento: vencim,
+  };
+
+  try {
+    if (editId) {
+      // Edición: no se modifica monto_pagado ni estado
+      const { error } = await sb.from('deudas_proveedores')
+        .update({ proveedor_nombre: nombre, descripcion: desc || null, fecha, fecha_vencimiento: vencim })
+        .eq('id', editId);
+      if (error) throw error;
+      const idx = DB.deudasProveedores.findIndex(d => d.id == editId);
+      if (idx !== -1) {
+        DB.deudasProveedores[idx].proveedor_nombre  = nombre;
+        DB.deudasProveedores[idx].descripcion       = desc || null;
+        DB.deudasProveedores[idx].fecha             = fecha;
+        DB.deudasProveedores[idx].fecha_vencimiento = vencim;
+      }
+      showToast('✅ Deuda actualizada');
+    } else {
+      // Nueva deuda
+      const { data, error } = await sb.from('deudas_proveedores')
+        .insert({ ...payload, monto_pagado: 0, estado: 'pendiente' })
+        .select().single();
+      if (error) throw error;
+      DB.deudasProveedores.unshift(data);
+      showToast('📤 Deuda registrada');
+    }
+    closeModal('proveedor-modal-overlay');
+    renderProveedores();
+  } catch(e) {
+    console.error(e);
+    showToast('❌ Error al guardar. Intentá de nuevo.');
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Abre el modal de detalle/pago de una deuda con proveedor
+// ──────────────────────────────────────────────────────────
+function openProvDetail(id) {
+  const d = DB.deudasProveedores.find(x => x.id === id);
+  if (!d) return;
+  provActual = d;
+
+  const debe    = d.monto_original - d.monto_pagado;
+  const hoy     = new Date(); hoy.setHours(0,0,0,0);
+
+  // Llenar resumen en el modal
+  document.getElementById('prov-pago-nombre').textContent   = d.proveedor_nombre;
+  document.getElementById('prov-pago-desc').textContent     = d.descripcion || fmtDate(d.fecha);
+  document.getElementById('prov-pago-total').textContent    = fmtGs(d.monto_original);
+  document.getElementById('prov-pago-yapagado').textContent = fmtGs(d.monto_pagado);
+  document.getElementById('prov-pago-restante').textContent = fmtGs(debe);
+  document.getElementById('prov-pago-monto').value          = '';
+
+  // Limpiar aviso
+  const aviso = document.getElementById('prov-pago-aviso');
+  aviso.style.display = 'none';
+
+  // Alerta de vencimiento en el modal
+  if (d.fecha_vencimiento) {
+    const fv   = new Date(d.fecha_vencimiento); fv.setHours(0,0,0,0);
+    const diff = Math.round((fv - hoy) / 86400000);
+    if (diff < 0) {
+      aviso.textContent    = `⚠️ Esta deuda venció hace ${Math.abs(diff)} día${Math.abs(diff)>1?'s':''}.`;
+      aviso.style.cssText  = 'display:block;background:var(--red-l);color:var(--red);font-size:.8rem;font-weight:600;padding:8px 12px;border-radius:var(--r-sm);margin-bottom:10px;';
+    } else if (diff === 0) {
+      aviso.textContent    = '⚠️ Esta deuda vence hoy.';
+      aviso.style.cssText  = 'display:block;background:var(--amber-l);color:var(--amber);font-size:.8rem;font-weight:600;padding:8px 12px;border-radius:var(--r-sm);margin-bottom:10px;';
+    } else if (diff <= 3) {
+      aviso.textContent    = `🔔 Vence en ${diff} día${diff>1?'s':''}.`;
+      aviso.style.cssText  = 'display:block;background:var(--amber-l);color:var(--amber);font-size:.8rem;font-weight:600;padding:8px 12px;border-radius:var(--r-sm);margin-bottom:10px;';
+    }
+  }
+
+  openModal('prov-pago-overlay');
+}
+
+// ──────────────────────────────────────────────────────────
+// Calcula y muestra el saldo que quedaría tras el pago
+// (se llama desde oninput del campo de monto en el modal)
+// ──────────────────────────────────────────────────────────
+function calcProvPagoRestante() {
+  if (!provActual) return;
+  const monto  = parseFloat(document.getElementById('prov-pago-monto').value) || 0;
+  const debe   = provActual.monto_original - provActual.monto_pagado;
+  const aviso  = document.getElementById('prov-pago-aviso');
+
+  if (monto <= 0) { aviso.style.display = 'none'; return; }
+
+  if (monto > debe) {
+    aviso.textContent   = `⚠️ El monto supera la deuda (${fmtGs(debe)}).`;
+    aviso.style.cssText = 'display:block;background:var(--red-l);color:var(--red);font-size:.8rem;font-weight:600;padding:8px 12px;border-radius:var(--r-sm);margin-bottom:10px;';
+    return;
+  }
+
+  const restante = debe - monto;
+  if (restante === 0) {
+    aviso.textContent   = '✅ Con este pago la deuda queda saldada.';
+    aviso.style.cssText = 'display:block;background:var(--green-l);color:var(--green);font-size:.8rem;font-weight:600;padding:8px 12px;border-radius:var(--r-sm);margin-bottom:10px;';
+  } else {
+    aviso.textContent   = `Quedaría un saldo de ${fmtGs(restante)}.`;
+    aviso.style.cssText = 'display:block;background:var(--surface2);color:var(--ink2);font-size:.8rem;font-weight:600;padding:8px 12px;border-radius:var(--r-sm);margin-bottom:10px;';
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Confirma el pago a proveedor:
+//   1. Actualiza deuda_proveedores en Supabase
+//   2. Crea un gasto en la tabla gastos (→ descuenta de caja)
+//   3. Actualiza la caché local DB.gastos y DB.deudasProveedores
+// ──────────────────────────────────────────────────────────
+async function pagarProveedorDeuda() {
+  if (!provActual) { showToast('Error: sin deuda seleccionada'); return; }
+
+  const monto = parseFloat(document.getElementById('prov-pago-monto').value);
+  if (!monto || monto <= 0) { showToast('⚠️ Ingresá un monto válido'); return; }
+
+  const debe = provActual.monto_original - provActual.monto_pagado;
+  if (monto > debe) {
+    showToast(`⚠️ El monto supera la deuda (${fmtGs(debe)})`);
+    return;
+  }
+
+  try {
+    // ── PASO 1: actualizar deuda en Supabase ──
+    const nuevoMontoPagado = provActual.monto_pagado + monto;
+    const nuevoEstado      = nuevoMontoPagado >= provActual.monto_original ? 'pagado' : 'pendiente';
+
+    const { error: ue } = await sb.from('deudas_proveedores').update({
+      monto_pagado: nuevoMontoPagado,
+      estado:       nuevoEstado
+    }).eq('id', provActual.id);
+    if (ue) throw ue;
+
+    // ── PASO 2: crear gasto automático en Supabase ──
+    // Esto es lo que descuenta el dinero de la caja
+    const descGasto = `Pago a proveedor: ${provActual.proveedor_nombre}${provActual.descripcion ? ' — ' + provActual.descripcion : ''}`;
+    const hoy       = new Date().toISOString().split('T')[0];
+
+    const { data: gastoNuevo, error: ge } = await sb.from('gastos').insert({
+      descripcion: descGasto,
+      cat:         'Proveedor',
+      amount:      monto,
+      date:        hoy,
+      negocio_id:  negocioId
+    }).select().single();
+    if (ge) throw ge;
+
+    // ── PASO 3: actualizar caché local ──
+    // Deuda
+    const idx = DB.deudasProveedores.findIndex(d => d.id === provActual.id);
+    if (idx !== -1) {
+      DB.deudasProveedores[idx].monto_pagado = nuevoMontoPagado;
+      DB.deudasProveedores[idx].estado       = nuevoEstado;
+      provActual = DB.deudasProveedores[idx];
+    }
+
+    // Gasto (para que aparezca en Movimientos y Caja sin recargar)
+    DB.gastos.unshift({ ...gastoNuevo, desc: gastoNuevo.descripcion });
+
+    showToast(nuevoEstado === 'pagado'
+      ? `✅ Deuda con ${provActual.proveedor_nombre} saldada. Gasto registrado.`
+      : `💸 Pago de ${fmtGs(monto)} registrado. Se descontó de caja.`
+    );
+
+    closeModal('prov-pago-overlay');
+
+    // Actualizar pantallas afectadas
+    renderProveedores();
+    renderBalance();
+    renderInicio();
+    updateBadgesPagar();
+
+  } catch(e) {
+    console.error(e);
+    showToast('❌ Error al registrar el pago. Intentá de nuevo.');
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// MODIFICADO: renderFiado actualiza también el subtítulo
+// correcto para la nueva estructura de tabs
+// ──────────────────────────────────────────────────────────
+// ── Sobrescribir el subtítulo del topbar según tab activo ──
+const _origRenderFiado = renderFiado;
+renderFiado = function() {
+  _origRenderFiado();
+  // Actualizar el sub del topbar con resumen de A Cobrar
+  const pendientes = DB.cuentasCorrientes.filter(c => c.estado === 'pendiente');
+  const totalPend  = pendientes.reduce((s,c) => s + (c.monto_original - c.monto_pagado), 0);
+  const provPend   = (DB.deudasProveedores || []).filter(d => d.estado === 'pendiente');
+  const totalProv  = provPend.reduce((s,d) => s + (d.monto_original - d.monto_pagado), 0);
+  const sub        = document.getElementById('fiado-sub');
+  if (sub) {
+    sub.textContent = `📥 Por cobrar: ${fmtGs(totalPend)}  ·  📤 Por pagar: ${fmtGs(totalProv)}`;
+  }
+  updateBadgesPagar();
+};
+
+// ──────────────────────────────────────────────────────────
+// Al entrar a la pantalla fiado, cargar proveedores si aún
+// no se cargaron (fallback de seguridad)
+// ──────────────────────────────────────────────────────────
+const _origNavTo = typeof navTo === 'function' ? navTo : null;
+if (_origNavTo) {
+  navTo = function(s) {
+    _origNavTo(s);
+    if (s === 'fiado' && (!DB.deudasProveedores || DB.deudasProveedores.length === 0)) {
+      loadDeudasProveedores().then(() => {
+        updateBadgesPagar();
+        if (fiadoMainTab === 'pagar') renderProveedores();
+      });
+    }
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+// FIN MÓDULO CRÉDITOS (A COBRAR / A PAGAR) ▲▲▲
 // ══════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════
