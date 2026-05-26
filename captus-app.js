@@ -5154,7 +5154,7 @@ function initAccordiones() {
 // ══ AGREGADO: WhatsApp soporte ══
 function abrirWhatsAppSoporte() {
   // Cambiá este número por el número real de soporte de Captus (con código de país, sin +)
-  const numero = '595981000000';
+  const numero = '595992270261';
   const mensaje = encodeURIComponent('Hola Captus, necesito ayuda con la app. 🙏');
   window.open('https://wa.me/' + numero + '?text=' + mensaje, '_blank');
 }
