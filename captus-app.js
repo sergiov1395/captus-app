@@ -380,7 +380,7 @@ async function enviarSolicitudUpgrade() {
     if (error) throw error;
 
     // ── Armar mensaje de WhatsApp para notificarte ──
-    // ══ REEMPLAZÁ 595981000000 con tu número real (sin + ni espacios) ══
+    // ══ REEMPLAZÁ 595992270261 con tu número real (sin + ni espacios) ══
     const tuNumero = '595992270261';
     const msg = encodeURIComponent(
       `🔔 *Solicitud de Upgrade — Nomi*\n\n` +
