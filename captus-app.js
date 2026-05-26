@@ -5140,22 +5140,14 @@ function toggleAccordion(id) {
   try { sessionStorage.setItem('acc_' + id, collapsed ? '1' : '0'); } catch(e){}
 }
 
-// Restaurar estados de acordeones al navegar a configuración
+// ══ MODIFICADO: acordeones siempre contraídos al ingresar a Configuración ══
 function initAccordiones() {
   ['acc-negocio','acc-monedas','acc-zonahoraria','acc-impresora'].forEach(id => {
     const body = document.getElementById(id);
     const icon = document.getElementById(id + '-icon');
     if (!body) return;
-    try {
-      const wasCollapsed = sessionStorage.getItem('acc_' + id) === '1';
-      if (wasCollapsed) {
-        body.classList.add('collapsed');
-        if (icon) icon.style.transform = 'rotate(-90deg)';
-      } else {
-        body.classList.remove('collapsed');
-        if (icon) icon.style.transform = 'rotate(0deg)';
-      }
-    } catch(e){}
+    body.classList.add('collapsed');
+    if (icon) icon.style.transform = 'rotate(-90deg)';
   });
 }
 
@@ -5167,57 +5159,135 @@ function abrirWhatsAppSoporte() {
   window.open('https://wa.me/' + numero + '?text=' + mensaje, '_blank');
 }
 
-// ══ AGREGADO: Botón "Agregar a inicio" (PWA + fallback escritorio) ══
-let _pwaPrompt = null;
+// ══ MODIFICADO: Modal guía "Agregar a inicio" — detecta dispositivo y muestra pasos visuales ══
+function mostrarGuiaInicio() {
+  const ua = navigator.userAgent;
+  const esIOS     = /iPhone|iPad|iPod/i.test(ua);
+  const esAndroid = /Android/i.test(ua);
+  const esSafari  = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS/i.test(ua);
+  const esChrome  = /Chrome|CriOS/i.test(ua) && !/Edge|Edg/i.test(ua);
+  const esEdge    = /Edg\/|Edge\//i.test(ua);
+  const esFirefox = /Firefox|FxiOS/i.test(ua);
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  _pwaPrompt = e;
-  // Mostrar el botón "Agregar a inicio" solo si hay prompt disponible (Android/Chrome)
-  const btn = document.getElementById('btn-instalar-app');
-  if (btn) btn.style.display = 'inline-flex';
-});
+  let titulo, ilustracion, pasos;
 
-window.addEventListener('appinstalled', () => {
-  _pwaPrompt = null;
-  const btn = document.getElementById('btn-instalar-app');
-  if (btn) btn.style.display = 'none';
-});
+  if (esIOS && esSafari) {
+    // iOS Safari — única opción nativa
+    titulo = 'Agregar en iPhone / iPad';
+    ilustracion = `<svg viewBox="0 0 280 90" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;">
+      <rect width="280" height="90" rx="12" fill="var(--surface2)"/>
+      <!-- barra inferior Safari simulada -->
+      <rect x="10" y="58" width="260" height="26" rx="8" fill="var(--border)"/>
+      <!-- ícono compartir centrado -->
+      <g transform="translate(128,65)">
+        <rect x="-8" y="-4" width="16" height="14" rx="2" fill="none" stroke="var(--blue)" stroke-width="2"/>
+        <line x1="0" y1="-4" x2="0" y2="-14" stroke="var(--blue)" stroke-width="2"/>
+        <polyline points="-4,-10 0,-15 4,-10" fill="none" stroke="var(--blue)" stroke-width="2"/>
+      </g>
+      <text x="140" y="52" text-anchor="middle" font-size="10" fill="var(--blue)" font-family="var(--font)" font-weight="700">Tocá este botón ↓</text>
+      <!-- flecha animada -->
+      <text x="140" y="92" text-anchor="middle" font-size="11" fill="var(--ink3)" font-family="var(--font)">barra inferior de Safari</text>
+    </svg>`;
+    pasos = `<b>1.</b> Abrí esta página en <b>Safari</b> (no Chrome ni otro navegador).<br>
+<b>2.</b> Tocá el botón <b>Compartir</b> <span style="background:var(--blue-l);color:var(--blue);padding:1px 6px;border-radius:4px;font-size:.82rem;">□↑</span> en la barra inferior.<br>
+<b>3.</b> Deslizá hacia abajo y tocá <b>"Agregar a pantalla de inicio"</b>.<br>
+<b>4.</b> Confirmá tocando <b>"Agregar"</b> arriba a la derecha.<br><br>
+<span style="color:var(--ink3);font-size:.8rem;">💡 El ícono de Captus aparecerá en tu pantalla de inicio como una app.</span>`;
 
-function instalarApp() {
-  if (_pwaPrompt) {
-    _pwaPrompt.prompt();
-    _pwaPrompt.userChoice.then(() => { _pwaPrompt = null; });
-  }
-}
+  } else if (esAndroid && esChrome) {
+    titulo = 'Agregar en Android (Chrome)';
+    ilustracion = `<svg viewBox="0 0 280 90" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;">
+      <rect width="280" height="90" rx="12" fill="var(--surface2)"/>
+      <rect x="10" y="10" width="260" height="32" rx="8" fill="var(--border)"/>
+      <text x="130" y="30" text-anchor="middle" font-size="10" fill="var(--ink2)" font-family="var(--font)">captus.app</text>
+      <!-- menú tres puntos -->
+      <g transform="translate(252,26)">
+        <circle cx="0" cy="-6" r="2" fill="var(--ink2)"/>
+        <circle cx="0" cy="0"  r="2" fill="var(--ink2)"/>
+        <circle cx="0" cy="6"  r="2" fill="var(--ink2)"/>
+      </g>
+      <text x="140" y="58" text-anchor="middle" font-size="10" fill="var(--blue)" font-family="var(--font)" font-weight="700">Tocá ⋮ en la esquina superior derecha</text>
+    </svg>`;
+    pasos = `<b>1.</b> Tocá el menú <span style="background:var(--surface2);padding:1px 7px;border-radius:4px;font-weight:700;">⋮</span> en la esquina superior derecha de Chrome.<br>
+<b>2.</b> Tocá <b>"Agregar a pantalla de inicio"</b> o <b>"Instalar app"</b>.<br>
+<b>3.</b> Confirmá tocando <b>"Agregar"</b> o <b>"Instalar"</b>.<br><br>
+<span style="color:var(--ink3);font-size:.8rem;">💡 Captus se abrirá como app, sin barras del navegador.</span>`;
 
-function mostrarInstruccionesFavoritos() {
-  const esMovil = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const esSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
-  let msg = '';
-  if (esMovil && esSafari) {
-    msg = 'En Safari: tocá el botón compartir (□↑) y luego "Agregar a pantalla de inicio".';
-  } else if (esMovil) {
-    msg = 'En tu navegador: tocá el menú (⋮ o ...) y buscá "Agregar a pantalla de inicio" o "Instalar app".';
+  } else if (esAndroid && esEdge) {
+    titulo = 'Agregar en Android (Edge)';
+    ilustracion = `<svg viewBox="0 0 280 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;">
+      <rect width="280" height="70" rx="12" fill="var(--surface2)"/>
+      <text x="140" y="38" text-anchor="middle" font-size="12" fill="var(--ink2)" font-family="var(--font)">Menú  ···  → <tspan font-weight="700">Teléfono</tspan> → Agregar a inicio</text>
+    </svg>`;
+    pasos = `<b>1.</b> Tocá el menú <span style="background:var(--surface2);padding:1px 7px;border-radius:4px;font-weight:700;">···</span> en la barra inferior de Edge.<br>
+<b>2.</b> Tocá <b>"Teléfono"</b> y luego <b>"Agregar a pantalla de inicio"</b>.<br>
+<b>3.</b> Confirmá con <b>"Agregar"</b>.<br><br>
+<span style="color:var(--ink3);font-size:.8rem;">💡 El ícono aparecerá en tu pantalla de inicio.</span>`;
+
+  } else if (!esAndroid && !esIOS && esChrome) {
+    titulo = 'Agregar en PC (Chrome)';
+    ilustracion = `<svg viewBox="0 0 280 90" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;">
+      <rect width="280" height="90" rx="12" fill="var(--surface2)"/>
+      <rect x="10" y="12" width="260" height="30" rx="7" fill="var(--border)"/>
+      <text x="100" y="31" font-size="10" fill="var(--ink2)" font-family="var(--font)">captus.app</text>
+      <!-- ícono instalar en barra -->
+      <g transform="translate(248,27)">
+        <rect x="-8" y="-8" width="16" height="16" rx="3" fill="var(--blue)" opacity=".15"/>
+        <text x="0" y="5" text-anchor="middle" font-size="13" fill="var(--blue)">⊕</text>
+      </g>
+      <text x="140" y="62" text-anchor="middle" font-size="10" fill="var(--blue)" font-family="var(--font)" font-weight="700">Hacé clic en ⊕ en la barra de dirección</text>
+      <text x="140" y="78" text-anchor="middle" font-size="9" fill="var(--ink3)" font-family="var(--font)">o usá el atajo Ctrl + D para favoritos</text>
+    </svg>`;
+    pasos = `<b>Opción A — Como app (recomendado):</b><br>
+<b>1.</b> Buscá el ícono <span style="background:var(--blue-l);color:var(--blue);padding:1px 6px;border-radius:4px;">⊕</span> en la barra de dirección (extremo derecho).<br>
+<b>2.</b> Hacé clic y luego en <b>"Instalar"</b>. Captus se abrirá como app.<br><br>
+<b>Opción B — Como favorito:</b><br>
+<b>1.</b> Presioná <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);">Ctrl</kbd> + <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);">D</kbd>.<br>
+<b>2.</b> Elegí la carpeta y hacé clic en <b>"Listo"</b>.`;
+
+  } else if (!esAndroid && !esIOS && esEdge) {
+    titulo = 'Agregar en PC (Edge)';
+    ilustracion = `<svg viewBox="0 0 280 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;">
+      <rect width="280" height="70" rx="12" fill="var(--surface2)"/>
+      <text x="140" y="38" text-anchor="middle" font-size="11" fill="var(--ink2)" font-family="var(--font)">Menú <tspan font-weight="700">···</tspan> → Aplicaciones → Instalar</text>
+    </svg>`;
+    pasos = `<b>Opción A — Como app:</b><br>
+<b>1.</b> Hacé clic en el menú <span style="background:var(--surface2);padding:1px 7px;border-radius:4px;font-weight:700;">···</span> (esquina superior derecha).<br>
+<b>2.</b> Entrá a <b>"Aplicaciones"</b> → <b>"Instalar este sitio como aplicación"</b>.<br><br>
+<b>Opción B — Como favorito:</b><br>
+Presioná <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);">Ctrl</kbd> + <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);">D</kbd> y guardá.`;
+
+  } else if (!esAndroid && !esIOS && esFirefox) {
+    titulo = 'Guardar en favoritos (Firefox)';
+    ilustracion = `<svg viewBox="0 0 280 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;">
+      <rect width="280" height="70" rx="12" fill="var(--surface2)"/>
+      <text x="140" y="38" text-anchor="middle" font-size="11" fill="var(--ink2)" font-family="var(--font)">Presioná <tspan font-weight="700">Ctrl + D</tspan> para guardar en favoritos</text>
+    </svg>`;
+    pasos = `Firefox no soporta instalar apps desde el navegador, pero podés guardarlo en favoritos.<br><br>
+<b>1.</b> Presioná <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);">Ctrl</kbd> + <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);">D</kbd>.<br>
+<b>2.</b> Poné un nombre como <b>"Captus"</b> y elegí la carpeta.<br>
+<b>3.</b> Hacé clic en <b>"Guardar"</b>.<br><br>
+<span style="color:var(--ink3);font-size:.8rem;">💡 Para acceso rápido, guardalo en la barra de favoritos.</span>`;
+
   } else {
-    msg = 'En Chrome/Edge de PC: hacé clic en el ícono ⊕ que aparece en la barra de dirección, o andá a Menú → "Instalar Captus". En otros navegadores, presioná Ctrl+D para guardar en favoritos.';
+    // Fallback genérico
+    titulo = 'Agregar Captus a inicio';
+    ilustracion = `<svg viewBox="0 0 280 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;">
+      <rect width="280" height="70" rx="12" fill="var(--surface2)"/>
+      <text x="140" y="38" text-anchor="middle" font-size="11" fill="var(--ink2)" font-family="var(--font)">Usá el menú de tu navegador</text>
+    </svg>`;
+    pasos = `<b>En móvil:</b> Buscá en el menú de tu navegador la opción <b>"Agregar a pantalla de inicio"</b> o <b>"Instalar app"</b>.<br><br>
+<b>En PC:</b> Presioná <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);">Ctrl</kbd> + <kbd style="background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);">D</kbd> para guardar en favoritos.`;
   }
-  alert('📲 ' + msg);
-}
 
-// Detectar si NO hay PWA prompt disponible y mostrar botón de favoritos como fallback (en desktop)
-document.addEventListener('DOMContentLoaded', () => {
-  // Esperamos un poco para ver si llega el beforeinstallprompt
-  setTimeout(() => {
-    const btnInstalar = document.getElementById('btn-instalar-app');
-    const btnFavoritos = document.getElementById('btn-favoritos-app');
-    // Si no llegó el prompt, mostrar botón de favoritos
-    if (!_pwaPrompt && btnFavoritos) {
-      btnFavoritos.style.display = 'inline-flex';
-    }
-  }, 1200);
-});
-// ══ FIN AGREGADO ══
+  document.getElementById('mai-titulo').textContent = titulo;
+  document.getElementById('mai-ilustracion').innerHTML = ilustracion;
+  document.getElementById('mai-pasos').innerHTML = pasos;
+
+  const overlay = document.getElementById('modal-agregar-inicio');
+  overlay.style.display = 'flex';
+}
+// ══ FIN MODIFICADO ══
 
 async function saveConfig(){
   const nombre=document.getElementById('cfg-nombre').value.trim()||'Mi Negocio';
