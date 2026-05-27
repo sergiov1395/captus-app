@@ -505,7 +505,7 @@ body {
 
 <!-- LOADING SCREEN -->
 <div id="loading-screen">
-  <div class="loading-logo">Nomi<span>.</span></div>
+  <div class="loading-logo">Captus<span>.</span></div>
   <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
 </div>
 
@@ -553,7 +553,7 @@ body {
 <!-- FOOTER -->
 <footer class="footer">
   <span id="footer-biz">Mi Negocio</span> · Catálogo generado con
-  <a href="#" target="_blank">Nomi</a>
+  <a href="https://captus.com.py" target="_blank">Captus</a>
 </footer>
 
 <script>
@@ -584,20 +584,46 @@ function fmtGs(n) {
 // ════════════════════════════════════════════
 async function init() {
   try {
-    // Cargar config del negocio y productos en paralelo
+    // ── MODIFICADO SEGURIDAD: leer negocio_id desde parámetro ?n= de la URL ──
+    const params    = new URLSearchParams(window.location.search);
+    const negocioId = params.get('n');
+
+    if (!negocioId) {
+      document.getElementById('catalog-body').innerHTML = `
+        <div class="empty-state">
+          <div class="big">🔒</div>
+          <p>Catálogo no disponible</p>
+          <small>El link no es válido. Pedile al negocio que te comparta el link correcto.</small>
+        </div>`;
+      document.getElementById('loading-screen').classList.add('hidden');
+      return;
+    }
+
+    // Verificar que el negocio tenga plan con catálogo activo
+    const { data: planData } = await sb.rpc('get_plan_activo', { p_negocio_id: negocioId });
+
+    if (!planData || planData.bloqueado || !planData.features?.includes('catalogo')) {
+      document.getElementById('catalog-body').innerHTML = `
+        <div class="empty-state">
+          <div class="big">🔒</div>
+          <p>Catálogo no disponible</p>
+          <small>Este negocio no tiene el catálogo público activo.</small>
+        </div>`;
+      document.getElementById('loading-screen').classList.add('hidden');
+      return;
+    }
+
+    // Cargar config del negocio y productos filtrados por negocio_id
     const [{ data: cfg }, { data: prods }] = await Promise.all([
-      sb.from('config').select('*').eq('id', 1).single(),
-      // ── LÍNEA CLAVE: solo productos activos, ordenados por categoría y nombre ──
-      sb.from('productos').select('*').order('cat').order('nombre')
+      sb.from('config').select('*').eq('negocio_id', negocioId).single(),
+      sb.from('productos').select('*').eq('negocio_id', negocioId).order('cat').order('nombre')
     ]);
+    // ── FIN MODIFICADO SEGURIDAD ──
 
     config      = cfg || {};
     allProducts = prods || [];
 
-    // Aplicar datos del negocio al hero
     applyConfig(config);
-
-    // Construir filtros y renderizar grilla
     buildCatPills();
     renderCatalog();
 
@@ -610,7 +636,6 @@ async function init() {
         <small>Verificá tu conexión e intentá nuevamente.</small>
       </div>`;
   } finally {
-    // Ocultar pantalla de carga
     document.getElementById('loading-screen').classList.add('hidden');
   }
 }

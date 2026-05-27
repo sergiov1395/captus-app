@@ -194,6 +194,57 @@ function aplicarRestriccionesPlan() {
   }
 }
 
+// ── AGREGADO SEGURIDAD: pantalla de bloqueo cuando el trial o plan venció ──
+function mostrarPantallaBloqueo(motivo) {
+  // Ocultar la app completa
+  const app = document.querySelector('.app');
+  if (app) app.style.display = 'none';
+
+  // Crear o reutilizar la pantalla de bloqueo
+  let el = document.getElementById('bloqueo-screen');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'bloqueo-screen';
+    el.style.cssText = `
+      position:fixed;inset:0;z-index:9999;
+      background:var(--bg);
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:32px;text-align:center;
+    `;
+    document.body.appendChild(el);
+  }
+
+  const mensajes = {
+    'Trial expirado':      { emoji: '⏰', titulo: 'Tu período demo terminó', sub: 'Tus datos están guardados y seguros. Activá el Plan Pro para seguir usando Captus.' },
+    'Plan vencido':        { emoji: '📅', titulo: 'Tu plan venció',           sub: 'Renovalo para recuperar el acceso completo a tu negocio.' },
+    'Sin suscripción activa': { emoji: '🔒', titulo: 'Sin plan activo',       sub: 'Contactanos para activar tu cuenta.' },
+  };
+
+  const msg = mensajes[motivo] || { emoji: '🔒', titulo: 'Acceso bloqueado', sub: motivo || 'Contactanos para más información.' };
+
+  el.innerHTML = `
+    <div style="font-size:3.5rem;margin-bottom:16px;">${msg.emoji}</div>
+    <div style="font-size:1.3rem;font-weight:800;color:var(--ink);margin-bottom:8px;">${msg.titulo}</div>
+    <div style="font-size:.9rem;color:var(--ink2);max-width:320px;margin-bottom:32px;line-height:1.5;">${msg.sub}</div>
+    <button
+      onclick="window.open('https://wa.me/595992270261?text=Hola!%20Quiero%20activar%20el%20Plan%20Pro%20de%20Captus','_blank')"
+      style="background:var(--blue);color:#fff;border:none;border-radius:var(--r);
+             padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;width:100%;max-width:280px;">
+      🚀 Activar Plan Pro
+    </button>
+    <button
+      onclick="doLogout()"
+      style="background:transparent;color:var(--ink2);border:1.5px solid var(--border);
+             border-radius:var(--r);padding:10px 24px;font-size:.9rem;cursor:pointer;width:100%;max-width:280px;">
+      Cerrar sesión
+    </button>
+  `;
+
+  el.style.display = 'flex';
+}
+// ── FIN AGREGADO SEGURIDAD ──
+
 // ── mostrarBloqueo: toast informativo cuando se toca una feature bloqueada ──
 function mostrarBloqueo(feature) {
   const nombres = {
@@ -433,6 +484,8 @@ let DB={
   tareas:[], historial:[],
   // ── AGREGADO: caché de cuentas corrientes ──
   cuentasCorrientes:[],
+  // ── AGREGADO: caché de pagos de fiado ──
+  pagosCC:[],
   // ══ MODIFICADO v2: tipo por defecto vacío para que loadConfig use el valor real de la DB ══
 config:{nombre:'Mi Negocio',tipo:'',tel:'',ruc:'',dir:'',slogan:'',
           ticketMsg:'¡Gracias por su compra! Vuelva pronto 😊',
@@ -443,9 +496,9 @@ let cart=[],currentProdTab='productos',currentCalcTab='tarjetas',prodModalType='
 let cartDescuento = { tipo: 'pct', valor: 0, monto: 0 };
 // ── AGREGADO ETAPA 2: ID del negocio activo, se llena al iniciar sesión ──
 let negocioId = null;
-// ── AGREGADO ETAPA 4: plan activo del negocio ──
-let planActual = { plan_id: 'gratis', features: [] };
-// ── FIN AGREGADO ETAPA 4 ──
+// ── MODIFICADO SEGURIDAD: plan activo del negocio (se llena desde backend) ──
+let planActual = { plan_id: 'gratis', features: [], bloqueado: false, motivo: null };
+// ── FIN MODIFICADO SEGURIDAD ──
 
 // Esta función reemplaza los datos hardcodeados.
 // Muestra un spinner, carga todo en paralelo, luego renderiza.
@@ -472,48 +525,36 @@ async function initApp(){
     negocioId = unData.negocio_id;
     
 
-    // ── AGREGADO ETAPA 4: cargar plan y features del negocio ──
-    const { data: susData } = await sb
-      .from('suscripciones')
-      .select('plan_id, estado, planes(features)')
-      .eq('negocio_id', negocioId)
-      .single();
+    // ── MODIFICADO SEGURIDAD: cargar plan desde función backend (no confiar en frontend) ──
+    const { data: planData, error: planError } = await sb
+      .rpc('get_plan_activo', { p_negocio_id: negocioId });
 
-    if (susData) {
-      // ── MODIFICADO ETAPA 4: lógica de trial ──
-      let features = susData.planes?.features || [];
-      let estaEnTrial = false;
-      let trialExpirado = false;
-
-      if (susData.plan_id === 'gratis' && susData.es_trial && susData.trial_expira) {
-        const hoy     = new Date();
-        const expira  = new Date(susData.trial_expira);
-        hoy.setHours(0,0,0,0);
-        expira.setHours(0,0,0,0);
-
-        if (hoy <= expira) {
-          estaEnTrial = true; // trial vigente: features completas
-        } else {
-          trialExpirado = true;
-          // Trial vencido: solo features básicas
-          features = ['pos','productos_50','clientes_20','reportes_basicos'];
-        }
-      }
-
+    if (planError) {
+      console.error('Error cargando plan:', planError.message);
+      planActual = { plan_id: 'gratis', features: [], bloqueado: false, motivo: null };
+    } else {
       planActual = {
-        plan_id:       susData.plan_id,
-        estado:        susData.estado,
-        features,
-        estaEnTrial,
-        trialExpirado,
-        trial_expira:  susData.trial_expira,
+        plan_id:           planData.plan_id,
+        features:          planData.features || [],
+        bloqueado:         planData.bloqueado || false,
+        motivo:            planData.motivo    || null,
+        estaEnTrial:       planData.es_trial  || false,
+        trialExpirado:     planData.bloqueado && planData.motivo === 'Trial expirado',
+        trial_expira:      planData.trial_expira      || null,
+        fecha_vencimiento: planData.fecha_vencimiento || null,
       };
-      // ── FIN MODIFICADO ETAPA 4 ──
     }
+
+    // Si el plan está bloqueado → mostrar pantalla de bloqueo en vez de la app
+    if (planActual.bloqueado) {
+      document.getElementById('loading-screen').style.display = 'none';
+      mostrarPantallaBloqueo(planActual.motivo);
+      return; // detener initApp
+    }
+
     // Aplicar restricciones visuales según el plan
     aplicarRestriccionesPlan();
-    
-    // ── FIN AGREGADO ETAPA 4 ──
+    // ── FIN MODIFICADO SEGURIDAD ──
 
     // Cargar todas las tablas en paralelo (más rápido que una por una)
 const [
@@ -544,6 +585,19 @@ const [
       sb.from('negocios').select('nombre, tipo').eq('id', negocioId).single()
       // ══ FIN MODIFICADO ══
     ]);
+
+    // ── AGREGADO: cargar pagos_cc con manejo correcto de error Supabase ──
+    let pagosCC = [];
+    const { data: pCC, error: pCCError } = await sb.from('pagos_cc')
+      .select('*')
+      .eq('negocio_id', negocioId)
+      .order('fecha', { ascending: false });
+    if (pCCError) {
+      console.warn('pagos_cc error:', pCCError.message);
+    } else {
+      pagosCC = pCC || [];
+    }
+    // ── FIN AGREGADO ──
     
 
 // Poblar caché local
@@ -552,6 +606,17 @@ const [
     DB.gastos             = gastos             || [];
     // ── AGREGADO ──
     DB.cuentasCorrientes  = cuentasCorrientes  || [];
+    // ── AGREGADO: poblar caché de pagos de fiado ──
+    // ── CORREGIDO: date usa p.fecha (nombre real de la columna en pagos_cc) ──
+    DB.pagosCC = (pagosCC || []).map(p => ({
+      ...p,
+      _t:   'p',
+      _d:   'Pago fiado · ' + (p.cliente_nombre || DB.clientes.find(c => c.id === p.cliente_id)?.nombre || 'Cliente'),
+      _ic:  '💳',
+      _c:   'var(--green)',
+      date: p.fecha,
+      total: p.monto
+    }));
     // ── LÍNEA AGREGADA: inicializar caché de proveedores ──
     DB.deudasProveedores  = [];
     // ── LÍNEA AGREGADA: cargar proveedores en segundo plano ──
@@ -1160,7 +1225,7 @@ function _tourRenderStep(idx) {
       const rect = targetEl.getBoundingClientRect();
       const pad  = 6;
       spot.style.display = 'block';
-      backdrop.style.display = 'none'; // el spotlight ya oscurece con box-shadow
+      backdrop.style.display = 'block'; // siempre visible para bloquear clics
       spot.style.left   = (rect.left   - pad) + 'px';
       spot.style.top    = (rect.top    - pad) + 'px';
       spot.style.width  = (rect.width  + pad * 2) + 'px';
@@ -1274,7 +1339,7 @@ if(s==='inicio') renderInicio();
   if(s==='gastos') renderGastos();
   if(s==='balance') renderBalance();
   if(s==='reportes') renderReportes();
-  if(s==='calc') initCalc();
+  if(s==='calc') initCalcModule();
   if(s==='config'){ loadConfig(); setTimeout(initAccordiones, 50); }
   // ── AGREGADO ──
   if(s==='fiado') renderFiado();
@@ -1294,6 +1359,7 @@ function renderMovimientosCaja() {
   const q    = (document.getElementById('mov-search')?.value    || '').trim().toLowerCase();
   const tipo = (document.getElementById('mov-filtro-tipo')?.value || '');
 
+  // ── MODIFICADO: se agrega DB.pagosCC como tercer tipo de movimiento ──
   let all = [
     ...DB.ventas.map(v => ({
       ...v,
@@ -1308,8 +1374,16 @@ function renderMovimientosCaja() {
       _d:  g.desc,
       _ic: '💸',
       _c:  'var(--red)'
+    })),
+    ...(DB.pagosCC || []).map(p => ({
+      ...p,
+      _t:  'p',
+      _d:  'Pago fiado · ' + (p.cliente_nombre || 'Cliente'),
+      _ic: '💳',
+      _c:  'var(--green)'
     }))
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
+  // ── FIN MODIFICADO ──
 
   // Aplicar filtro de tipo
   if (tipo) all = all.filter(m => m._t === tipo);
@@ -1347,21 +1421,24 @@ function renderMovimientosCaja() {
         })()
       : '';
 
-    return `<div class="list-row"
-        onclick="${m._t === 'i' ? `openVentaDetail(${m.id})` : `openEditGasto(${m.id})`}"
-        title="${m._t === 'i' ? 'Ver detalle / eliminar venta' : 'Editar / eliminar gasto'}">
-        <div class="row-icon" style="background:${m._t === 'i' ? 'var(--green-l)' : 'var(--red-l)'};">${m._ic}</div>
+    // ── CORREGIDO: soporte para tipo 'p' (pago fiado) ──
+    // ── MODIFICADO: tipo 'p' abre detalle simple de pago CC ──
+    const onclick = m._t === 'i' ? `openVentaDetail(${m.id})` : m._t === 'p' ? `openDetallePagoCC(${m.id})` : `openEditGasto(${m.id})`;
+    const titulo  = m._t === 'i' ? 'Ver detalle / eliminar venta' : m._t === 'p' ? 'Ver detalle del pago' : 'Editar / eliminar gasto';
+    const bgIcon  = m._t === 'i' ? 'var(--green-l)' : m._t === 'p' ? 'var(--purple-l,#ede9fe)' : 'var(--red-l)';
+    const signo   = m._t === 'e' ? '−' : '+';
+    const monto   = m._t === 'i' ? m.total : m._t === 'p' ? m.monto : m.amount;
+    const label   = m._t === 'i' ? '🔍 Ver detalle' : m._t === 'p' ? '🔍 Ver detalle' : '✏️ Editar';
+    const subtipo = m._t === 'i' ? 'Venta' : m._t === 'p' ? 'Pago fiado' : 'Gasto';
+    return `<div class="list-row" ${onclick ? `onclick="${onclick}"` : ''} style="${onclick ? 'cursor:pointer;' : 'cursor:default;'}" title="${titulo}">
+        <div class="row-icon" style="background:${bgIcon};">${m._ic}</div>
         <div class="row-body">
           <div class="row-name">${m._d}</div>
-          <div class="row-sub">
-            ${m._t === 'i' ? 'Venta' : 'Gasto'} · ${fmtDate(m.date)}${monedaBadge}
-          </div>
+          <div class="row-sub">${subtipo} · ${fmtDate(m.date)}${monedaBadge}</div>
         </div>
         <div class="row-right">
-          <div class="row-amount" style="color:${m._c}">${m._t === 'i' ? '+' : '−'}${fmtMoneda(m._t === 'i' ? m.total : m.amount, principal)}</div>
-          <div style="font-size:.68rem;color:var(--ink3);margin-top:3px;">
-            ${m._t === 'i' ? '🔍 Ver detalle' : '✏️ Editar'}
-          </div>
+          <div class="row-amount" style="color:${m._c}">${signo}${fmtMoneda(monto, principal)}</div>
+          <div style="font-size:.68rem;color:var(--ink3);margin-top:3px;">${label}</div>
         </div>
       </div>`;
   }).join('');
@@ -2207,12 +2284,20 @@ function quitarDescuento(){
   renderCart();
   showToast('Descuento eliminado');
 }
+// ── CORREGIDO Bug 4: flag para evitar doble click ──
+let _changingQty = false;
 function changeQty(id,d){
-  const i=cart.find(c=>c.id===id); if(!i) return;
-  i.qty=Math.max(0,i.qty+d);
-  if(i.qty===0) cart=cart.filter(c=>c.id!==id);
-  renderCart(); renderPosGrid();
+  if(_changingQty) return;
+  _changingQty = true;
+  const i=cart.find(c=>c.id===id);
+  if(i){
+    i.qty=Math.max(0,i.qty+d);
+    if(i.qty===0) cart=cart.filter(c=>c.id!==id);
+    renderCart(); renderPosGrid();
+  }
+  setTimeout(()=>{ _changingQty=false; }, 150);
 }
+// ── FIN CORREGIDO Bug 4 ──
 async function finalizarVenta(){
   // ── MODIFICADO: chequeo en tiempo real de caja (multi-dispositivo) ──
   // Primero chequeo rápido en memoria
@@ -2262,6 +2347,17 @@ try{
     // ── MODIFICADO: se agrega descuento_monto y descuento_tipo a la venta ──
     // ── MODIFICADO: se agrega lectura y guardado del campo nota ──
     const notaVenta = document.getElementById('cart-nota').value.trim();
+    // ── CORREGIDO Bug 1: num correlativo desde Supabase para evitar duplicados ──
+    const { data: maxNumData } = await sb
+      .from('ventas')
+      .select('num')
+      .eq('negocio_id', negocioId)
+      .order('num', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextNum = ((maxNumData?.num) || 0) + 1;
+    // ── FIN CORREGIDO Bug 1 ──
+
     const {data:venta,error:ve}=await sb.from('ventas').insert({
       total,
       subtotal,
@@ -2271,7 +2367,8 @@ try{
       cliente_id:       clienteId||null,
       cliente_nombre:   cliente?.nombre||null,
       pago,
-      num:              DB.ventas.length+1,
+      // ── CORREGIDO Bug 1: usar número correlativo real ──
+      num:              nextNum,
       nota:             notaVenta || null,
       negocio_id:       negocioId,
       // ── FASE 3: guardar moneda, TC y monto original ──
@@ -2520,14 +2617,23 @@ function renderInicio(){
   const today = new Date().toDateString();
   const vH  = DB.ventas.filter(v => new Date(v.date).toDateString()===today);
   const gH  = DB.gastos.filter(g => new Date(g.date).toDateString()===today);
-  const ing = vH.reduce((s,v)=>s+v.total, 0);
+  // ── MODIFICADO: ing suma ventas + pagos de fiado del día ──
+  const pH  = (DB.pagosCC||[]).filter(p => new Date(p.date).toDateString()===today);
+  const ing = vH.reduce((s,v)=>s+v.total, 0) + pH.reduce((s,p)=>s+(p.monto||0), 0);
   const gst = gH.reduce((s,g)=>s+g.amount, 0);
-  const fiadoPendiente = DB.fiado ? DB.fiado.reduce((s,f)=>s+(f.saldo||0),0) : 0;
+  // ── CORREGIDO Bug 1: usar DB.cuentasCorrientes en lugar de DB.fiado (no existe) ──
+  const fiadoPendiente = (DB.cuentasCorrientes || [])
+    .filter(c => c.estado === 'pendiente')
+    .reduce((s,c) => s + ((c.monto_original || 0) - (c.monto_pagado || 0)), 0);
+  // ── FIN CORREGIDO Bug 1 ──
 
   // ── BLOQUE KPIs: modo con datos vs. empty state ──
   const kpisWrap = document.getElementById('home-kpis-wrap');
   if(kpisWrap){
-    const sinActividad = !DB.ventas.length && !DB.gastos.length && !DB.productos.length;
+    // ── CORREGIDO Bug 2: incluir cuentasCorrientes y pagosCC en la detección de actividad ──
+    const sinActividad = !DB.ventas.length && !DB.gastos.length && !DB.productos.length
+                      && !DB.cuentasCorrientes.length && !(DB.pagosCC||[]).length;
+  // ── FIN CORREGIDO Bug 2 ──
     if(sinActividad){
       // USUARIO NUEVO: panel de bienvenida con pasos guiados
       kpisWrap.innerHTML = `
@@ -2567,17 +2673,22 @@ function renderInicio(){
         </div>`;
     } else {
       // USUARIO CON DATOS: KPIs del día normales
+      // ── CORREGIDO Bug 3: caja real = ventas cobradas (no fiadas) + pagos CC - gastos ──
+      const ingEfectivo = vH.filter(v => v.pago !== 'Cuenta corriente').reduce((s,v)=>s+v.total,0)
+                        + pH.reduce((s,p)=>s+(p.monto||0),0);
+      const vHCobradas  = vH.filter(v => v.pago !== 'Cuenta corriente').length;
+      // ── FIN CORREGIDO Bug 3 ──
       kpisWrap.innerHTML = `
         <div class="grid-4">
           <div class="stat-card">
             <div class="sc-label">Caja del día</div>
-            <div class="sc-val">${fmtGs(ing-gst)}</div>
-            <div class="sc-sub">${vH.length} venta${vH.length!==1?'s':''} hoy</div>
+            <div class="sc-val">${fmtGs(ingEfectivo-gst)}</div>
+            <div class="sc-sub">${vHCobradas} cobro${vHCobradas!==1?'s':''} hoy</div>
           </div>
           <div class="stat-card">
             <div class="sc-label">Ingresos hoy</div>
             <div class="sc-val" style="color:var(--green)">${fmtGs(ing)}</div>
-            <div class="sc-sub">${vH.length ? 'Efectivo + otros medios' : 'Sin ventas aún hoy'}</div>
+            <div class="sc-sub">${vH.length ? 'Ventas + cobros fiado' : 'Sin ventas aún hoy'}</div>
           </div>
           <div class="stat-card">
             <div class="sc-label">Gastos hoy</div>
@@ -2663,18 +2774,23 @@ function renderInicio(){
       const listaVentas = ventasHoy.length ? ventasHoy : DB.ventas.slice(0,5);
       const etiqueta    = ventasHoy.length ? 'Hoy' : 'Recientes';
       vl.innerHTML = `<div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">${etiqueta}</div>` +
-        listaVentas.slice(0,5).map(v=>`
+        // ── CORREGIDO Bug 5: badge distinto para ventas fiadas ──
+        listaVentas.slice(0,5).map(v=>{
+          const esFiada = v.pago === 'Cuenta corriente';
+          return `
           <div class="list-row" onclick="openVentaDetail(${v.id})" style="cursor:pointer;" title="Ver detalle">
-            <div class="row-icon" style="background:var(--green-l);">🛒</div>
+            <div class="row-icon" style="background:${esFiada?'var(--amber-l,#fffbeb)':'var(--green-l)'};">${esFiada?'⏳':'🛒'}</div>
             <div class="row-body">
               <div class="row-name">${v.clienteNombre||'Venta rápida'}</div>
               <div class="row-sub">${v.items.map(i=>i.nombre).join(', ').substring(0,45)}</div>
             </div>
             <div class="row-right">
-              <div class="row-amount" style="color:var(--green)">+${fmtGs(v.total)}</div>
+              <div class="row-amount" style="color:${esFiada?'var(--amber)':'var(--green)'}">${esFiada?'📋':'+'} ${fmtGs(v.total)}</div>
               <div class="row-date">${timeAgo(v.date)}</div>
             </div>
-          </div>`).join('') +
+          </div>`;
+        }).join('') +
+        // ── FIN CORREGIDO Bug 5 ──
         (DB.ventas.length > 5 ? `<div style="padding:10px 0 2px;"><button onclick="navTo('movimientos')" style="width:100%;background:none;border:1.5px solid var(--border);border-radius:100px;padding:7px;font-size:.75rem;font-weight:700;color:var(--ink2);cursor:pointer;font-family:var(--font);">Ver todas →</button></div>` : '');
     }
   }
@@ -2746,9 +2862,7 @@ function renderHistorial(){
     ).values()].sort((a,b) => a.nombre.localeCompare(b.nombre));
 
     const valorActual = sel.value; // conservar selección previa
-    console.log('DEBUG planId:', planId);
-  console.log('DEBUG features:', features);
-  console.log('DEBUG planNombre:', planNombre);
+    // ── ELIMINADO Bug 4: logs de debug removidos de producción ──
     sel.innerHTML = `<option value="">👥 Todos los clientes</option>` +
       clientesConVentas.map(c =>
         `<option value="${c.id || c.nombre}" ${(c.id||c.nombre)==valorActual?'selected':''}>
@@ -3075,7 +3189,8 @@ function renderGastos(){
 // ── MODIFICADO: renderBalance ahora es async para incluir conversiones en el total ──
 async function renderBalance(){
   const principal = monedaPrincipal();
-  const ing = DB.ventas.reduce((s,v) => s + v.total, 0);
+  const ing = DB.ventas.reduce((s,v) => s + v.total, 0)
+            + (DB.pagosCC||[]).reduce((s,p) => s + (p.monto||0), 0);
   const egr = DB.gastos.reduce((s,g) => s + g.amount, 0);
 
   // ── AGREGADO: sumar diferencia neta de conversiones al saldo ──
@@ -3091,11 +3206,21 @@ async function renderBalance(){
   } catch(e){ console.error('Error leyendo diferencia conversiones:', e); }
   // ── FIN AGREGADO ──
 
-  document.getElementById('bal-total').textContent = fmtGs(ing - egr + difConversiones);
-  document.getElementById('bal-ing').textContent   = fmtGs(ing);
+ // ── CORREGIDO Bug 2: pagosCC ya están en ing, conversiones se suman aparte al saldo ──
+  const ingVentas = DB.ventas.reduce((s,v) => s + v.total, 0);
+  const ingFiado  = (DB.pagosCC||[]).reduce((s,p) => s + (p.monto||0), 0);
+  document.getElementById('bal-total').textContent = fmtGs(ingVentas + ingFiado - egr + difConversiones);
+  document.getElementById('bal-ing').textContent   = fmtGs(ingVentas + ingFiado);
   document.getElementById('bal-egr').textContent   = fmtGs(egr);
+  // ── FIN CORREGIDO Bug 2 ──
 
-  const all=[...DB.ventas.map(v=>({...v,_t:'i',_d:v.clienteNombre||'Venta rápida',_ic:'🛒',_c:'var(--green)'})),...DB.gastos.map(g=>({...g,_t:'e',_d:g.desc,_ic:'💸',_c:'var(--red)'}))].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  // ── MODIFICADO: se agrega DB.pagosCC como tercer tipo de movimiento ──
+  const all=[
+    ...DB.ventas.map(v=>({...v,_t:'i',_d:v.clienteNombre||'Venta rápida',_ic:'🛒',_c:'var(--green)'})),
+    ...DB.gastos.map(g=>({...g,_t:'e',_d:g.desc,_ic:'💸',_c:'var(--red)'})),
+    ...(DB.pagosCC||[]).map(p=>({...p,_t:'p',_d:'Pago fiado · '+(p.cliente_nombre||'Cliente'),_ic:'💳',_c:'var(--green)'}))
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  // ── FIN MODIFICADO ──
   // ── AGREGADO: actualiza el badge de resumen del acordeón ──
   const balResumen = document.getElementById('bal-resumen');
   if (balResumen) {
@@ -3122,23 +3247,27 @@ all.map(m=>{
       })()
     : '';
 
-  return `<div class="list-row"
-      onclick="${m._t==='i' ? `openVentaDetail(${m.id})` : `openEditGasto(${m.id})`}"
-      title="${m._t==='i' ? 'Ver detalle / eliminar venta' : 'Editar / eliminar gasto'}">
-      <div class="row-icon" style="background:${m._t==='i'?'var(--green-l)':'var(--red-l)'};">${m._ic}</div>
+ // ── CORREGIDO: soporte para tipo 'p' (pago fiado) ──
+  // ── MODIFICADO: tipo 'p' abre detalle simple de pago CC ──
+  const onclick = m._t==='i' ? `openVentaDetail(${m.id})` : m._t==='p' ? `openDetallePagoCC(${m.id})` : `openEditGasto(${m.id})`;
+  const titulo  = m._t==='i' ? 'Ver detalle / eliminar venta' : m._t==='p' ? 'Ver detalle del pago' : 'Editar / eliminar gasto';
+  const bgIcon  = m._t==='i' ? 'var(--green-l)' : m._t==='p' ? 'var(--purple-l,#ede9fe)' : 'var(--red-l)';
+  const signo   = m._t==='e' ? '−' : '+';
+  const monto   = m._t==='i' ? m.total : m._t==='p' ? m.monto : m.amount;
+  const label   = m._t==='i' ? '🔍 Ver detalle' : m._t==='p' ? '🔍 Ver detalle' : '✏️ Editar';
+  const subtipo = m._t==='i' ? 'Venta' : m._t==='p' ? 'Pago fiado' : 'Gasto';
+  return `<div class="list-row" ${onclick ? `onclick="${onclick}"` : ''} style="${onclick ? 'cursor:pointer;' : 'cursor:default;'}" title="${titulo}">
+      <div class="row-icon" style="background:${bgIcon};">${m._ic}</div>
       <div class="row-body">
         <div class="row-name">${m._d}</div>
-        <div class="row-sub">
-          ${m._t==='i'?'Venta':'Gasto'} · ${fmtDate(m.date)}${monedaBadge}
-        </div>
+        <div class="row-sub">${subtipo} · ${fmtDate(m.date)}${monedaBadge}</div>
       </div>
       <div class="row-right">
-        <div class="row-amount" style="color:${m._c}">${m._t==='i'?'+':'−'}${fmtMoneda(m._t==='i'?m.total:m.amount, principal)}</div>
-        <div style="font-size:.68rem;color:var(--ink3);margin-top:3px;">
-          ${m._t==='i' ? '🔍 Ver detalle' : '✏️ Editar'}
-        </div>
+        <div class="row-amount" style="color:${m._c}">${signo}${fmtMoneda(monto, principal)}</div>
+        <div style="font-size:.68rem;color:var(--ink3);margin-top:3px;">${label}</div>
       </div>
     </div>`;
+  // ── FIN CORREGIDO ──
 }).join('');
 
 // ── MODIFICADO: se agregó btnAbrir ──
@@ -3149,13 +3278,16 @@ all.map(m=>{
     const hoy = new Date().toDateString();
     const vHoy = DB.ventas.filter(v=>new Date(v.date).toDateString()===hoy);
     const gHoy = DB.gastos.filter(g=>new Date(g.date).toDateString()===hoy);
-    const ingHoy = vHoy.reduce((s,v)=>s+v.total,0);
+    // ── MODIFICADO: ingHoy suma ventas + pagos de fiado del día ──
+    const pHoy = (DB.pagosCC||[]).filter(p=>new Date(p.date).toDateString()===hoy);
+    const ingHoy = vHoy.reduce((s,v)=>s+v.total,0)
+                 + pHoy.reduce((s,p)=>s+(p.monto||0),0);
     const gstHoy = gHoy.reduce((s,g)=>s+g.amount,0);
     document.getElementById('caja-turno-titulo').textContent =
       `Turno del ${fmtDate(turnoActual.fecha)}${turnoActual.notas_apertura?' · '+turnoActual.notas_apertura:''}`;
     document.getElementById('caja-turno-sub').textContent =
       `Monto inicial: ${fmtGs(turnoActual.monto_inicial)}`;
-    document.getElementById('caja-ventas-hoy').textContent = vHoy.length;
+    document.getElementById('caja-ventas-hoy').textContent = vHoy.length + pHoy.length;
     document.getElementById('caja-ing-hoy').textContent = fmtGs(ingHoy);
     document.getElementById('caja-gst-hoy').textContent = fmtGs(gstHoy);
     turnoWrap.style.display = 'block';
@@ -3456,23 +3588,31 @@ function openCierreCaja(){
   const hoy = new Date().toDateString();
   const vHoy = DB.ventas.filter(v=>new Date(v.date).toDateString()===hoy);
   const gHoy = DB.gastos.filter(g=>new Date(g.date).toDateString()===hoy);
+  // ── CORREGIDO Bug 1: incluir pagos de fiado del día en el cierre ──
+  const pHoy = (DB.pagosCC||[]).filter(p=>new Date(p.date).toDateString()===hoy);
 
-  const totalVentas   = vHoy.reduce((s,v)=>s+v.total,0);
-  const ventasEfectivo= vHoy.filter(v=>v.pago==='Efectivo').reduce((s,v)=>s+v.total,0);
-  const ventasOtros   = totalVentas - ventasEfectivo;
-  const totalGastos   = gHoy.reduce((s,g)=>s+g.amount,0);
-  const esperado      = turnoActual.monto_inicial + ventasEfectivo - totalGastos;
+  const totalVentas    = vHoy.reduce((s,v)=>s+v.total,0);
+  const ventasEfectivo = vHoy.filter(v=>v.pago==='Efectivo').reduce((s,v)=>s+v.total,0);
+  const ventasOtros    = totalVentas - ventasEfectivo;
+  const totalGastos    = gHoy.reduce((s,g)=>s+g.amount,0);
+  // Pagos de fiado: los cobrados en efectivo suman al efectivo esperado
+  const fiadoEfectivo  = pHoy.filter(p=>(p.metodo_pago||'Efectivo')==='Efectivo').reduce((s,p)=>s+(p.monto||0),0);
+  const fiadoOtros     = pHoy.reduce((s,p)=>s+(p.monto||0),0) - fiadoEfectivo;
+  const totalIngresos  = totalVentas + pHoy.reduce((s,p)=>s+(p.monto||0),0);
+  const esperado       = turnoActual.monto_inicial + ventasEfectivo + fiadoEfectivo - totalGastos;
+  // ── FIN CORREGIDO Bug 1 ──
 
   // Guardar en variables para usarlas al confirmar
   window._cierreDatos = {
     totalVentas, ventasEfectivo, ventasOtros, totalGastos, esperado,
-    cantVentas: vHoy.length
+    fiadoEfectivo, fiadoOtros, totalIngresos,
+    cantVentas: vHoy.length + pHoy.length
   };
 
   document.getElementById('cierre-monto-inicial').textContent = fmtGs(turnoActual.monto_inicial);
-  document.getElementById('cierre-total-ventas').textContent  = fmtGs(totalVentas);
-  document.getElementById('cierre-efectivo').textContent      = fmtGs(ventasEfectivo);
-  document.getElementById('cierre-otros').textContent         = fmtGs(ventasOtros);
+  document.getElementById('cierre-total-ventas').textContent  = fmtGs(totalIngresos);
+  document.getElementById('cierre-efectivo').textContent      = fmtGs(ventasEfectivo + fiadoEfectivo);
+  document.getElementById('cierre-otros').textContent         = fmtGs(ventasOtros + fiadoOtros);
   document.getElementById('cierre-gastos').textContent        = fmtGs(totalGastos);
   document.getElementById('cierre-esperado').textContent      = fmtGs(esperado);
   document.getElementById('cierre-monto-real').value          = '';
@@ -3669,9 +3809,17 @@ function getDatosReporte(){
     const f = new Date(g.date);
     return f >= desde && f <= hasta;
   });
+  // ── CORREGIDO Bug 1 y 5: incluir pagos de fiado del período ──
+  const pagosCC = (DB.pagosCC || []).filter(p => {
+    const f = new Date(p.fecha || p.date);
+    return f >= desde && f <= hasta;
+  });
 
-  const ing = ventas.reduce((s, v) => s + v.total, 0);
+  const ingVentas = ventas.reduce((s, v) => s + v.total, 0);
+  const ingFiado  = pagosCC.reduce((s, p) => s + (p.monto || 0), 0);
+  const ing = ingVentas + ingFiado;
   const gst = gastos.reduce((s, g) => s + g.amount, 0);
+  // ── FIN CORREGIDO ──
 
   // Etiqueta legible del período para PDF/Excel
   let periodoLabel;
@@ -3681,7 +3829,7 @@ function getDatosReporte(){
     periodoLabel = `${desdeStr} al ${hastaStr}`;
   }
 
-  return { ventas, gastos, ing, gst, periodoLabel, desdeStr, hastaStr };
+  return { ventas, gastos, pagosCC, ing, ingVentas, ingFiado, gst, periodoLabel, desdeStr, hastaStr };
 }
 
 // ── NUEVO: carga una librería CDN dinámicamente (solo si no está ya cargada) ──
@@ -4030,9 +4178,15 @@ async function renderReportes(){
     ? top.map(([n, q], i) => `<div class="list-row"><div class="row-icon" style="background:var(--surface2);font-weight:800;font-size:.8rem;color:var(--ink3);">#${i + 1}</div><div class="row-body"><div class="row-name">${n}</div></div><div class="row-right"><div class="row-amount">${q} ud.</div></div></div>`).join('')
     : `<div class="empty-state" style="padding:28px 0"><div class="empty-icon">📊</div><div class="empty-text">Sin datos.</div></div>`;
 
-  // ── Top Clientes lista (sin cambios) ──
+  // ── Top Clientes: suma ventas + pagos CC del período ──
+  // ── CORREGIDO Bug 2: incluir cobros de fiado en el ranking ──
   const ct = {};
-  ventas.forEach(v => { if(v.clienteId) ct[v.clienteId] = (ct[v.clienteId] || 0) + v.total; });
+  ventas.forEach(v => {
+    if(v.clienteId) ct[v.clienteId] = (ct[v.clienteId] || 0) + v.total;
+  });
+  pagosCC.forEach(p => {
+    if(p.cliente_id) ct[p.cliente_id] = (ct[p.cliente_id] || 0) + (p.monto || 0);
+  });
   const topCli = Object.entries(ct).sort((a, b) => b[1] - a[1]).slice(0, 5);
   document.getElementById('rep-cli').innerHTML = topCli.length
     ? topCli.map(([id, total], i) => {
@@ -4040,9 +4194,11 @@ async function renderReportes(){
         return `<div class="list-row"><div class="row-icon" style="background:var(--surface2);font-weight:800;font-size:.8rem;color:var(--ink3);">#${i + 1}</div><div class="row-body"><div class="row-name">${cl ? cl.nombre : 'Cliente'}</div></div><div class="row-right"><div class="row-amount">${fmtGs(total)}</div></div></div>`;
       }).join('')
     : `<div class="empty-state" style="padding:28px 0"><div class="empty-icon">👥</div><div class="empty-text">Sin datos.</div></div>`;
+  // ── FIN CORREGIDO Bug 2 ──
 
-  // ── FASE 5 + gráficos existentes ──
-  await renderGraficosReportes(ventas, top);
+ // ── FASE 5 + gráficos existentes ──
+  // ── CORREGIDO: pasar pagosCC a renderGraficosReportes ──
+  await renderGraficosReportes(ventas, top, pagosCC);
 
   // ══════════════════════════════════════════════════════════
   // AGREGADO: ranking de productos más rentables
@@ -4595,7 +4751,8 @@ async function editarConversion(id){
 // ══════════════════════════════════════════════════════════
 
 // ── AGREGADO: dibuja los 3 gráficos con Chart.js ──
-async function renderGraficosReportes(ventas, topProductos){
+// ── CORREGIDO Bug 3 y 4: recibe pagosCC para incluirlos en los gráficos ──
+async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
   await ensureChartJs();
 
   // Paleta de colores usando CSS vars del sistema
@@ -4611,16 +4768,9 @@ async function renderGraficosReportes(ventas, topProductos){
 
   // ════════════════════════════════════════════════
   // GRÁFICO 1 — Barras: Ingresos por día
-  // Agrupa las ventas por fecha y suma los totales
+  // Agrupa ventas + pagos CC por fecha y suma totales
   // ════════════════════════════════════════════════
-  const diasMap = {};
-  ventas.forEach(v => {
-    const d = new Date(v.date);
-    // Formato corto: "lun 12", "mar 13", etc.
-    const key = d.toLocaleDateString('es-PY', { weekday:'short', day:'numeric' });
-    diasMap[key] = (diasMap[key] || 0) + v.total;
-  });
-  // Ordenar por fecha real
+  // ── CORREGIDO Bug 3: incluir pagos CC en el gráfico de ingresos por día ──
   const ventasPorFecha = {};
   ventas.forEach(v => {
     const d = new Date(v.date);
@@ -4628,7 +4778,14 @@ async function renderGraficosReportes(ventas, topProductos){
     if(!ventasPorFecha[ts]) ventasPorFecha[ts] = { label: d.toLocaleDateString('es-PY',{weekday:'short',day:'numeric'}), total: 0 };
     ventasPorFecha[ts].total += v.total;
   });
+  pagosCC.forEach(p => {
+    const d = new Date(p.fecha || p.date);
+    const ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    if(!ventasPorFecha[ts]) ventasPorFecha[ts] = { label: d.toLocaleDateString('es-PY',{weekday:'short',day:'numeric'}), total: 0 };
+    ventasPorFecha[ts].total += (p.monto || 0);
+  });
   const diasOrdenados = Object.keys(ventasPorFecha).sort((a,b)=>+a-+b).map(k=>ventasPorFecha[k]);
+  // ── FIN CORREGIDO Bug 3 ──
 
   const ctxDia = document.getElementById('chart-ventas-dia');
   if(ctxDia){
@@ -4677,11 +4834,17 @@ async function renderGraficosReportes(ventas, topProductos){
   // GRÁFICO 2 — Dona: Métodos de pago
   // Cuenta cuántas ventas hubo por cada método
   // ════════════════════════════════════════════════
+  // ── CORREGIDO Bug 4: incluir métodos de pago de fiados en el donut ──
   const metodosMap = {};
   ventas.forEach(v => {
     const m = v.metodoPago || v.metodo_pago || 'Efectivo';
     metodosMap[m] = (metodosMap[m] || 0) + v.total;
   });
+  pagosCC.forEach(p => {
+    const m = p.metodo_pago || 'Efectivo';
+    metodosMap[m] = (metodosMap[m] || 0) + (p.monto || 0);
+  });
+  // ── FIN CORREGIDO Bug 4 ──
   const metodosLabels = Object.keys(metodosMap);
   const metodosData   = metodosLabels.map(k => metodosMap[k]);
 
@@ -4759,53 +4922,926 @@ async function renderGraficosReportes(ventas, topProductos){
 // FIN REPORTES CON GRÁFICOS
 // ══════════════════════════════════════════════════════════
 
-// ═══ CALC ═════════════════════════════════
-function setCalcTab(tab,el){
-  currentCalcTab=tab;
-  document.querySelectorAll('#calc-tabs button').forEach(b=>b.className='btn btn-ghost btn-sm');
-  el.className='btn btn-primary btn-sm'; initCalc();
+// ══════════════════════════════════════════════════════════
+// ▼▼▼ PRESUPUESTADOR v2 — MÓDULO COMPLETO ▼▼▼
+// REEMPLAZADO: nueva lógica con materiales, taller, historial y Supabase
+// ══════════════════════════════════════════════════════════
+
+// ── Estado local del presupuestador (persistido en localStorage) ──
+let calcState = {
+  taller: { deudas:0, luz:0, insumos:0, otros:0, horasDia:6, diasMes:22, objetivo:0, _costoHora:0 },
+  materiales: [
+    { id:1, nombre:'Couché 115g (A3)', precio:0, unidades:1 },
+    { id:2, nombre:'Offset 75g (A4)', precio:0, unidades:500 },
+    { id:3, nombre:'Autoadhesivo A4', precio:0, unidades:1 },
+    { id:4, nombre:'Carbónico', precio:0, unidades:100 },
+  ],
+  // ── MODIFICADO: tóner por cartucho individual + % de cobertura ──
+  toner: {
+    negro:   { precio: 250000, rendimiento: 3000 },
+    cyan:    { precio: 220000, rendimiento: 2500 },
+    magenta: { precio: 220000, rendimiento: 2500 },
+    amarillo:{ precio: 220000, rendimiento: 2500 },
+  },
+  // ── MODIFICADO: acabados son lista dinámica con nombre y monto ──
+  acabados: [
+    { id: 1, nombre: 'Plastificado brillo', costo: 0 },
+    { id: 2, nombre: 'Plastificado mate',   costo: 0 },
+    { id: 3, nombre: 'Troquel',             costo: 0 },
+  ],
+  historial: []
+};
+
+let calcMatIdCounter = 10;
+
+const CALC_PRESETS = {
+  tarjeta:    { nombre:'Tarjetas de presentación', piezas:8, caras:2, tiempo:45, margen:50 },
+  talonario:  { nombre:'Talonario', piezas:2, caras:1, tiempo:90, margen:45 },
+  volante:    { nombre:'Volantes', piezas:4, caras:1, tiempo:40, margen:45 },
+  calcomania: { nombre:'Calcomanías', piezas:6, caras:1, tiempo:60, margen:55 },
+  ficha:      { nombre:'Fichas de cobro', piezas:4, caras:1, tiempo:50, margen:40 },
+  custom:     { nombre:'', piezas:1, caras:1, tiempo:60, margen:40 }
+};
+
+
+
+// ── Carga el estado guardado en localStorage ──
+// MODIFICADO: merge profundo para no perder claves nuevas (ej: toner con 4 cartuchos)
+// ── Carga desde localStorage como caché rápida (mientras llega Supabase) ──
+function calcLoadState() {
+  try {
+    const saved = localStorage.getItem('captus_calc_v2');
+    if (!saved) return;
+    const parsed = JSON.parse(saved);
+    if (parsed.taller)     Object.assign(calcState.taller, parsed.taller);
+    if (parsed.materiales) calcState.materiales = parsed.materiales;
+    if (parsed.acabados)   calcState.acabados   = parsed.acabados;
+    if (parsed.toner) {
+      ['negro','cyan','magenta','amarillo'].forEach(k => {
+        if (parsed.toner[k]) Object.assign(calcState.toner[k], parsed.toner[k]);
+      });
+    }
+  } catch(e) {}
 }
-function initCalc(){
-  const D={
-    tarjetas:{t:'🪪 Tarjetas',f:[{id:'t_p',l:'Paquetes pedidos',h:'1 paquete = 100 tarjetas',v:5},{id:'t_papel',l:'Papel/cartulina por paquete (Gs)',v:12000},{id:'t_tinta',l:'Tinta/tóner por paquete (Gs)',v:4000},{id:'t_ext',l:'Plastificado/terminación (Gs)',v:3000},{id:'t_min',l:'Minutos de producción',v:120}]},
-    talonarios:{t:'📋 Talonarios',f:[{id:'ta_c',l:'Cantidad de talonarios',v:10},{id:'ta_h',l:'Hojas por talonario',v:50},{id:'ta_papel',l:'Costo papel por hoja (Gs)',v:350},{id:'ta_tinta',l:'Tinta por hoja (Gs)',v:100},{id:'ta_enc',l:'Encuadernado por talonario (Gs)',v:2000},{id:'ta_min',l:'Minutos de producción',v:180}]},
-    volantes:{t:'📄 Volantes',f:[{id:'v_c',l:'Cantidad de volantes',v:500},{id:'v_papel',l:'Papel por unidad (Gs)',v:250},{id:'v_tinta',l:'Tinta por unidad (Gs)',v:150},{id:'v_min',l:'Minutos de producción',v:120}]},
-    etiquetas:{t:'🏷️ Etiquetas',f:[{id:'e_pl',l:'Planchas pedidas',v:20},{id:'e_pp',l:'Etiquetas por plancha',v:24},{id:'e_papel',l:'Papel/insumo por plancha (Gs)',v:3500},{id:'e_tinta',l:'Tinta por plancha (Gs)',v:1500},{id:'e_corte',l:'Corte/terminación por plancha (Gs)',v:500},{id:'e_min',l:'Minutos de producción',v:90}]}
+
+// ── Guarda en localStorage (caché local) ──
+function calcSaveState() {
+  localStorage.setItem('captus_calc_v2', JSON.stringify(calcState));
+}
+
+// ── Guarda la configuración en Supabase ──
+// NUEVO: persiste materiales, tóner, acabados y taller en la nube
+async function calcSaveSupabase() {
+  if (!negocioId) return;
+  const payload = {
+    negocio_id: negocioId,
+    materiales: calcState.materiales,
+    toner:      calcState.toner,
+    acabados:   calcState.acabados,
+    taller:     calcState.taller,
+    updated_at: new Date().toISOString()
   };
-  const d=D[currentCalcTab];
-  document.getElementById('calc-body').innerHTML=`
-    <div class="card"><div class="card-title">🏢 Gastos del Local</div>
-      <div class="field"><label>Alquiler / Local (Gs)</label><input type="number" id="ca_alq" value="1500000" oninput="calcP()"></div>
-      <div class="field"><label>Electricidad + Internet (Gs)</label><input type="number" id="ca_ser" value="350000" oninput="calcP()"></div>
-      <div class="field"><label>Sueldos / Personal (Gs)</label><input type="number" id="ca_sue" value="2500000" oninput="calcP()"></div>
-      <div class="field"><label>Horas laborales al mes</label><input type="number" id="ca_hs" value="160" oninput="calcP()"></div>
-    </div>
-    <div class="card"><div class="card-title">${d.t}</div>
-      ${d.f.map(f=>`<div class="field"><label>${f.l}${f.h?`<span class="hint">${f.h}</span>`:''}</label><input type="number" id="${f.id}" value="${f.v}" oninput="calcP()"></div>`).join('')}
-    </div>
-    <div class="card"><div class="card-title">💰 Precio y Margen</div>
-      <div class="field"><label>Empaque / envío (Gs)</label><input type="number" id="ca_emp" value="5000" oninput="calcP()"></div>
-      <div class="field"><label>% Margen de ganancia</label><input type="number" id="ca_mar" value="50" oninput="calcP()"></div>
-      <div class="field"><label>% IVA u otros impuestos</label><input type="number" id="ca_iva" value="10" oninput="calcP()"></div>
-    </div>`;
-  calcP();
+  // upsert: inserta si no existe, actualiza si ya existe (por negocio_id único)
+  const { error } = await sb
+    .from('calc_config')
+    .upsert(payload, { onConflict: 'negocio_id' });
+  if (error) console.error('Error guardando calc_config:', error.message);
 }
+
+// ── Carga la configuración desde Supabase ──
+async function calcLoadSupabase() {
+  if (!negocioId) return false;
+  try {
+    const { data, error } = await sb
+      .from('calc_config')
+      .select('*')
+      .eq('negocio_id', negocioId)
+      .single();
+    if (error || !data) return false;
+
+    // Aplicar datos al estado
+    if (data.materiales?.length) calcState.materiales = data.materiales;
+    if (data.acabados?.length)   calcState.acabados   = data.acabados;
+    if (data.taller && Object.keys(data.taller).length)
+      Object.assign(calcState.taller, data.taller);
+    if (data.toner) {
+      ['negro','cyan','magenta','amarillo'].forEach(k => {
+        if (data.toner[k]) Object.assign(calcState.toner[k], data.toner[k]);
+      });
+    }
+    // Actualizar caché local con los datos frescos de Supabase
+    calcSaveState();
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── Inicializa el módulo al entrar a la pantalla ──
+// MODIFICADO: carga desde localStorage primero (rápido), luego sincroniza con Supabase
+async function initCalcModule() {
+  // 1. Mostrar datos del localStorage inmediatamente (sin esperar red)
+  calcLoadState();
+  switchCalcPanel('calcular', document.querySelector('.calc-nav-btn'));
+  calcPopulateMaterialSelect();
+  calcLoadTallerFields();
+  calcRenderMateriales();
+  calcRenderTonerLista();
+  calcRenderAcabadosLista();
+  calcRenderChipsAcabados();
+  calcRecalcCostoHora();
+
+  // 2. Sincronizar con Supabase en segundo plano y refrescar si hay datos nuevos
+  const actualizado = await calcLoadSupabase();
+  if (actualizado) {
+    calcPopulateMaterialSelect();
+    calcLoadTallerFields();
+    calcRenderMateriales();
+    calcRenderTonerLista();
+    calcRenderAcabadosLista();
+    calcRenderChipsAcabados();
+    calcRecalcCostoHora();
+  }
+}
+
+// ── Cambia entre pestañas internas del presupuestador ──
+// CORREGIDO: re-renderiza secciones dinámicas al entrar a cada panel
+function switchCalcPanel(name, el) {
+  document.querySelectorAll('.calc-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.calc-nav-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('cpanel-' + name);
+  if (panel) panel.classList.add('active');
+  if (el) el.classList.add('active');
+  else {
+    document.querySelectorAll('.calc-nav-btn').forEach(b => {
+      if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+name+"'")) b.classList.add('active');
+    });
+  }
+  // ── Re-renderizar contenido dinámico al entrar al panel ──
+  if (name === 'materiales') {
+    calcRenderMateriales();
+    calcRenderTonerLista();
+    calcRenderAcabadosLista();
+  }
+  if (name === 'historial') {
+    calcCargarHistorialSupabase();
+  }
+}
+
+// ── Selecciona un preset de producto ──
+function calcSelectPreset(el) {
+  document.querySelectorAll('.calc-preset-card').forEach(c => c.classList.remove('chosen'));
+  el.classList.add('chosen');
+  const p = CALC_PRESETS[el.dataset.preset];
+  if (!p) return;
+  document.getElementById('calc-nombre').value = p.nombre;
+  document.getElementById('calc-piezas').value = p.piezas;
+  document.getElementById('calc-caras').value = p.caras;
+  document.getElementById('calc-tiempo').value = p.tiempo;
+  const mr = document.getElementById('calc-margen');
+  mr.value = p.margen;
+  document.getElementById('calc-margen-lbl').textContent = p.margen + '%';
+}
+
+// ── Toggle de chips de acabados ──
+function calcToggleChip(el) {
+  el.classList.toggle('selected');
+}
+
+// ── Pobla el select de materiales ──
+function calcPopulateMaterialSelect() {
+  const sel = document.getElementById('calc-material');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— elegir —</option>';
+  calcState.materiales.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    const pu = m.unidades > 0 ? Math.round(m.precio / m.unidades) : 0;
+    opt.textContent = m.nombre + ' (' + fmtGs(pu) + '/u)';
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
+}
+
+// ── Calcula el presupuesto completo ──
+function calcularPresupuesto() {
+  // ── CORREGIDO Bug 4: no limpiar chips automáticamente — son intencionales ──
+  // En cambio, mostrar visualmente cuáles están activos en el breakdown
+  const nombre   = document.getElementById('calc-nombre').value || 'Producto';
+  const cantidad = +document.getElementById('calc-cantidad').value || 1000;
+  const matId    = document.getElementById('calc-material').value;
+  const piezas   = +document.getElementById('calc-piezas').value || 1;
+  const caras    = +document.getElementById('calc-caras').value || 1;
+  const tiempo   = +document.getElementById('calc-tiempo').value || 60;
+  const margen   = +document.getElementById('calc-margen').value || 40;
+  const extra    = +document.getElementById('calc-extra').value || 0;
+
+  // ---- PAPEL ----
+  let costoPapelUnit = 0, matNombre = '—';
+  if (matId) {
+    const m = calcState.materiales.find(x => x.id === +matId);
+    if (m && m.unidades > 0) { costoPapelUnit = m.precio / m.unidades; matNombre = m.nombre; }
+  }
+  const hojas = Math.ceil(cantidad / piezas);
+  const costoPapel = hojas * costoPapelUnit;
+
+ // ---- TÓNER ---- MODIFICADO: precio por cartucho + % cobertura + modo color/negro ──
+  const modoColor  = document.getElementById('calc-modo-color')?.value || 'color';
+  const cobPct     = (+document.getElementById('calc-cobertura')?.value || 50) / 100;
+  const totalImp   = hojas * caras;
+
+  // Costo por impresión a 100% de cobertura
+  const t = calcState.toner;
+  const cpiNegro = t.negro.rendimiento   > 0 ? t.negro.precio   / t.negro.rendimiento   : 0;
+  const cpiCyan  = t.cyan.rendimiento    > 0 ? t.cyan.precio    / t.cyan.rendimiento    : 0;
+  const cpiMag   = t.magenta.rendimiento > 0 ? t.magenta.precio / t.magenta.rendimiento : 0;
+  const cpiAma   = t.amarillo.rendimiento> 0 ? t.amarillo.precio/ t.amarillo.rendimiento: 0;
+
+  // A color: los 4 cartuchos a la cobertura elegida
+  // Solo negro: solo el negro a la cobertura elegida
+  const cpiTotal = modoColor === 'negro'
+    ? cpiNegro * cobPct
+    : (cpiNegro + cpiCyan + cpiMag + cpiAma) * cobPct;
+
+  const costoToner = Math.round(totalImp * cpiTotal);
+
+  // ---- MANO DE OBRA ----
+  const costoHora = calcState.taller._costoHora || 0;
+  const costoMO = Math.round((tiempo / 60) * costoHora);
+
+// ---- ACABADOS ---- MODIFICADO: lista dinámica ──
+  let costoAcab = 0, acabDesc = [];
+  document.querySelectorAll('#calc-acabados-chips .calc-chip.selected').forEach(ch => {
+    const id  = +ch.dataset.id;
+    const acb = calcState.acabados.find(a => a.id === id);
+    if (acb) { costoAcab += acb.costo || 0; acabDesc.push(acb.nombre); }
+  });
+
+  // ---- TOTALES ----
+  const costoTotal   = costoPapel + costoToner + costoMO + costoAcab + extra;
+  const cantidadReal = cantidad > 0 ? cantidad : 1; // ── Fix: evitar división por cero
+  const costoUnit    = costoTotal / cantidadReal;
+  // ── CORREGIDO Bug 2: precioMin usa la mitad del margen configurado (nunca menos de 5%) ──
+  const margenMin    = Math.max(5, margen / 2);
+  const precioMin    = Math.ceil(costoTotal * (1 + margenMin / 100));
+  const precioSug    = Math.ceil(costoTotal * (1 + margen / 100));
+  // ── CORREGIDO Bug 3: documentar el +20% del premium en el label ──
+  const precioPrem   = Math.ceil(costoTotal * (1 + margen / 100 + 0.2));
+  // ── FIN CORREGIDO ──
+  // ── CORREGIDO Bug 1: margenReal sobre costo (markup), no sobre precio ──
+  // Así coincide con lo que el usuario ingresó en el campo "% ganancia"
+  const margenReal   = costoTotal > 0 ? Math.round(((precioSug - costoTotal) / costoTotal) * 100) : 0;
+  // ── Fix: advertir si el precio sugerido está muy cerca del mínimo ──
+  const margenAjustado = precioSug <= precioMin * 1.02;
+  // ── FIN CORREGIDO Bug 1 ──
+
+  // ---- RENDER RESULTADO ----
+  document.getElementById('calc-res-titulo').textContent = `📐 ${nombre} · ${fmtGs(cantidad)} unidades`;
+  document.getElementById('calc-c-costo').textContent  = fmtGs(costoTotal);
+  document.getElementById('calc-c-min').textContent    = fmtGs(precioMin);
+  document.getElementById('calc-c-precio').textContent   = fmtGs(precioSug);
+  // ── CORREGIDO Bug 3: mostrar el margen real del premium ──
+  const margenPrem = Math.round(margen + 20);
+  document.getElementById('calc-c-premium').textContent  = fmtGs(precioPrem);
+  const premLabel = document.getElementById('calc-c-premium-label');
+  if (premLabel) premLabel.textContent = margenPrem + '% ganancia';
+  // ── FIN CORREGIDO Bug 3 ──
+  document.getElementById('calc-c-cu').textContent = fmtGs(Math.round(costoUnit)) + '/u';
+  document.getElementById('calc-c-pu').textContent = margen + '% ganancia';
+
+  const cobPctLabel = Math.round(cobPct * 100) + '%';
+  const modoLabel   = modoColor === 'negro' ? 'negro' : 'CMYK';
+  let breakdown = `
+    <div class="calc-breakdown-row"><span>Papel ${matNombre} (${fmtGs(hojas)} hojas × ${fmtGs(Math.round(costoPapelUnit))}/u)</span><span>${fmtGs(Math.round(costoPapel))}</span></div>
+    <div class="calc-breakdown-row"><span>Tóner ${modoLabel} · ${cobPctLabel} cob. (${fmtGs(totalImp)} imp. × Gs ${Math.round(cpiTotal * 100) / 100}/imp)</span><span>${fmtGs(costoToner)}</span></div>
+    <div class="calc-breakdown-row"><span>Mano de obra (${tiempo} min · ${fmtGs(costoHora)}/hr)</span><span>${fmtGs(costoMO)}</span></div>
+    ${costoAcab>0?`<div class="calc-breakdown-row"><span>Acabados: ${acabDesc.join(', ')}</span><span>${fmtGs(costoAcab)}</span></div>`:''}
+    ${extra>0?`<div class="calc-breakdown-row"><span>Extras / delivery</span><span>${fmtGs(extra)}</span></div>`:''}
+    <div class="calc-breakdown-row total-row"><span>COSTO TOTAL</span><span>${fmtGs(Math.round(costoTotal))}</span></div>
+    <div class="calc-breakdown-row" style="font-size:.78rem;color:var(--ink3);"><span>Costo unitario</span><span>${fmtGs(Math.round(costoUnit))}/u</span></div>
+  `;
+  document.getElementById('calc-breakdown').innerHTML = breakdown;
+
+  // Barra de margen
+  const bar = document.getElementById('calc-margen-bar');
+  bar.style.width = Math.min(margenReal, 100) + '%';
+  bar.style.background = margenReal < 20 ? 'var(--red)' : margenReal < 35 ? 'var(--amber)' : 'var(--green)';
+document.getElementById('calc-margen-pct').textContent = margenReal + '%' + (margenAjustado ? ' ⚠️' : '');
+  document.getElementById('calc-margen-pct').style.color = margenReal < 20 ? 'var(--red)' : margenReal < 35 ? 'var(--amber)' : 'var(--green)';
+
+  // Mostrar resultado
+  const resBox = document.getElementById('calc-resultado');
+  resBox.style.display = 'block';
+  resBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Guardar en historial local
+  calcState.historial.unshift({
+    ts: Date.now(), nombre, cantidad,
+    costoTotal: Math.round(costoTotal),
+    precioSugerido: precioSug,
+    margenReal
+  });
+  if (calcState.historial.length > 30) calcState.historial.pop();
+  calcSaveState();
+  calcRenderHistorial();
+
+  // Guardar datos para copiar
+  resBox._data = { nombre, cantidad, costoTotal: Math.round(costoTotal), precioMin, precioSug, precioPrem, acabDesc, matNombre };
+
+  // Mostrar botón guardar en topbar
+  
+}
+
+// ── Copia el presupuesto para WhatsApp ──
+function calcCopiarWhatsapp() {
+  const box = document.getElementById('calc-resultado');
+  if (!box._data) return;
+  const d = box._data;
+  const txt = `*Presupuesto · ${d.nombre}*\n📦 Cantidad: ${fmtGs(d.cantidad)} unidades\n🖨 Material: ${d.matNombre}\n${d.acabDesc.length?'✨ Acabados: '+d.acabDesc.join(', ')+'\n':''}\n💰 *Precio: Gs ${fmtGs(d.precioSug)}*\n_(mínimo Gs ${fmtGs(d.precioMin)})_\n\n_Presupuesto válido por 48 hs._`;
+  navigator.clipboard.writeText(txt).then(() => showToast('¡Copiado! Pegalo en WhatsApp ✓'));
+}
+
+// ── Guarda el presupuesto en Supabase ──
+async function calcGuardarEnSupabase() {
+  if (!negocioId) { showToast('⚠️ Iniciá sesión para guardar.'); return; }
+  const box = document.getElementById('calc-resultado');
+  if (!box || !box._data) { showToast('⚠️ Primero calculá un presupuesto.'); return; }
+  const d = box._data;
+  const btn = document.getElementById('calc-save-btn2');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando…'; }
+
+  const { error } = await sb.from('presupuestos').insert({
+    negocio_id:      negocioId,
+    nombre:          d.nombre,
+    cantidad:        d.cantidad,
+    material:        d.matNombre,
+    acabados:        d.acabDesc.join(', '),
+    costo_total:     d.costoTotal,
+    precio_minimo:   d.precioMin,
+    precio_sugerido: d.precioSug,
+    precio_premium:  d.precioPrem,
+    created_at:      new Date().toISOString()
+  });
+
+  if (btn) { btn.disabled = false; btn.textContent = '☁️ Guardar'; }
+
+  if (error) {
+    showToast('❌ Error al guardar: ' + error.message);
+  } else {
+    showToast('✅ Presupuesto guardado en Supabase');
+    // Si el panel historial está activo, recargarlo automáticamente
+    if (document.getElementById('cpanel-historial')?.classList.contains('active')) {
+      calcCargarHistorialSupabase();
+    }
+  }
+}
+
+// ══ HISTORIAL — Supabase + selección + exportar PDF ══════════════
+
+// Estado de selección
+let calcHistorialItems  = [];   // copia local de los items cargados
+let calcModoSeleccion   = false;
+
+// Carga los presupuestos desde Supabase
+async function calcCargarHistorialSupabase() {
+  const lista = document.getElementById('calc-historial-lista');
+  if (!lista) return;
+  if (!negocioId) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-text">Iniciá sesión para ver el historial.</div></div>`;
+    return;
+  }
+  lista.innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Cargando…</div></div>`;
+
+  const { data, error } = await sb
+    .from('presupuestos')
+    .select('*')
+    .eq('negocio_id', negocioId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><div class="empty-text">Error al cargar: ${error.message}</div></div>`;
+    return;
+  }
+  calcHistorialItems = data || [];
+  calcRenderHistorial(calcHistorialItems);
+}
+
+// Renderiza la lista con checkboxes opcionales
+function calcRenderHistorial(items) {
+  const lista = document.getElementById('calc-historial-lista');
+  if (!lista) return;
+  if (!items || !items.length) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No hay presupuestos guardados todavía.<br>Calculá uno y presioná ☁️ Guardar.</div></div>`;
+    return;
+  }
+  lista.innerHTML = items.map(h => `
+    <div class="calc-hist-item" id="hist-item-${h.id}" style="cursor:default;">
+
+      <!-- Checkbox de selección (visible solo en modo selección) -->
+      <div class="hist-check-wrap" style="display:${calcModoSeleccion ? 'flex' : 'none'};align-items:center;margin-right:10px;">
+        <input type="checkbox" class="hist-checkbox" data-id="${h.id}"
+          style="width:18px;height:18px;accent-color:var(--blue);cursor:pointer;"
+          onchange="calcActualizarContadorSeleccion()">
+      </div>
+
+      <!-- Contenido -->
+      <div style="flex:1;min-width:0;">
+        <div class="calc-hist-name">${h.nombre}</div>
+        <div class="calc-hist-detail">
+          ${fmtGs(h.cantidad)} uds ·
+          costo ${fmtGs(h.costo_total)} ·
+          sugerido ${fmtGs(h.precio_sugerido)} ·
+          ${h.material ? h.material + ' · ' : ''}
+          ${calcFechaCorta(h.created_at)}
+        </div>
+        ${h.acabados ? `<div style="font-size:.72rem;color:var(--ink3);margin-top:2px;">✨ ${h.acabados}</div>` : ''}
+      </div>
+
+      <!-- Precio y botón borrar -->
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+        <div class="calc-hist-price">${fmtGs(h.precio_sugerido)}</div>
+        <button class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:.72rem;display:${calcModoSeleccion ? 'none' : 'inline-flex'};"
+          onclick="calcBorrarPresupuesto(${h.id})" id="hist-borrar-${h.id}">🗑</button>
+      </div>
+
+    </div>
+  `).join('');
+}
+
+// Activa/desactiva el modo selección
+function calcToggleModoSeleccion() {
+  calcModoSeleccion = !calcModoSeleccion;
+  const btnSel    = document.getElementById('hist-btn-seleccionar');
+  const btnExp    = document.getElementById('hist-btn-exportar');
+  const barra     = document.getElementById('hist-barra-seleccion');
+
+  if (calcModoSeleccion) {
+    btnSel.textContent = '✕ Cancelar';
+    btnSel.className   = 'btn btn-ghost btn-sm';
+    btnExp.style.display = '';
+    barra.style.display  = 'flex';
+  } else {
+    btnSel.textContent   = '☑️ Seleccionar';
+    btnExp.style.display = 'none';
+    barra.style.display  = 'none';
+  }
+  // Re-renderizar para mostrar/ocultar checkboxes y botones borrar
+  calcRenderHistorial(calcHistorialItems);
+  calcActualizarContadorSeleccion();
+}
+
+// Actualiza el contador "N seleccionados"
+function calcActualizarContadorSeleccion() {
+  const checked = document.querySelectorAll('.hist-checkbox:checked').length;
+  const el = document.getElementById('hist-seleccion-count');
+  if (el) el.textContent = checked + (checked === 1 ? ' seleccionado' : ' seleccionados');
+}
+
+function calcSeleccionarTodos() {
+  document.querySelectorAll('.hist-checkbox').forEach(cb => cb.checked = true);
+  calcActualizarContadorSeleccion();
+}
+
+function calcDeseleccionarTodos() {
+  document.querySelectorAll('.hist-checkbox').forEach(cb => cb.checked = false);
+  calcActualizarContadorSeleccion();
+}
+
+// Borra un presupuesto de Supabase
+async function calcBorrarPresupuesto(id) {
+  if (!confirm('¿Borrar este presupuesto? Esta acción no se puede deshacer.')) return;
+
+  const { error } = await sb
+    .from('presupuestos')
+    .delete()
+    .eq('id', id)
+    .eq('negocio_id', negocioId);
+
+  if (error) {
+    showToast('❌ Error al borrar: ' + error.message);
+  } else {
+    calcHistorialItems = calcHistorialItems.filter(h => h.id !== id);
+    const el = document.getElementById('hist-item-' + id);
+    if (el) el.remove();
+    showToast('🗑 Presupuesto eliminado');
+    if (!document.querySelectorAll('.calc-hist-item').length) calcRenderHistorial([]);
+  }
+}
+
+// ── Exportar PDF de los presupuestos seleccionados ──────────────
+async function calcExportarPDF() {
+  const checkboxes = document.querySelectorAll('.hist-checkbox:checked');
+  if (!checkboxes.length) {
+    showToast('⚠️ Seleccioná al menos un presupuesto.');
+    return;
+  }
+
+  const ids = Array.from(checkboxes).map(cb => +cb.dataset.id);
+  const seleccionados = calcHistorialItems.filter(h => ids.includes(h.id));
+
+  // Obtener nombre del negocio para el encabezado
+  const negNombre = document.getElementById('home-sub')?.textContent || 'Mi Negocio';
+
+  // Construir HTML del PDF en una ventana nueva
+  const fechaHoy = new Date().toLocaleDateString('es-PY', { day:'2-digit', month:'long', year:'numeric' });
+
+  const filas = seleccionados.map((h, i) => `
+    <tr class="${i % 2 === 0 ? 'par' : 'impar'}">
+      <td>${h.nombre}</td>
+      <td class="num">${Math.round(h.cantidad).toLocaleString('es-PY')}</td>
+      <td>${h.material || '—'}</td>
+      <td>${h.acabados || '—'}</td>
+      <td class="num">${Math.round(h.costo_total).toLocaleString('es-PY')}</td>
+      <td class="num">${Math.round(h.precio_minimo).toLocaleString('es-PY')}</td>
+      <td class="num precio">${Math.round(h.precio_sugerido).toLocaleString('es-PY')}</td>
+      <td class="num">${Math.round(h.precio_premium).toLocaleString('es-PY')}</td>
+      <td class="fecha">${calcFechaCorta(h.created_at)}</td>
+    </tr>
+  `).join('');
+
+  const totalCosto    = seleccionados.reduce((s, h) => s + h.costo_total, 0);
+  const totalSugerido = seleccionados.reduce((s, h) => s + h.precio_sugerido, 0);
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Presupuestos · ${negNombre}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a1a; padding: 28px 32px; }
+  .header { border-bottom: 3px solid #18181b; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .header-title { font-size: 22px; font-weight: 800; letter-spacing: -.03em; }
+  .header-sub { font-size: 11px; color: #52525b; margin-top: 3px; }
+  .header-meta { text-align: right; font-size: 10px; color: #71717a; }
+  .summary { display: flex; gap: 16px; margin-bottom: 20px; }
+  .sum-card { flex: 1; border: 1.5px solid #e4e4e7; border-radius: 8px; padding: 12px 14px; }
+  .sum-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #71717a; margin-bottom: 4px; }
+  .sum-val { font-size: 16px; font-weight: 800; }
+  .sum-val.green { color: #16a34a; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  thead tr { background: #18181b; color: white; }
+  thead th { padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+  thead th.num { text-align: right; }
+  tbody tr.par { background: #fafafa; }
+  tbody tr.impar { background: #ffffff; }
+  tbody td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.precio { font-weight: 800; color: #16a34a; }
+  td.fecha { color: #71717a; font-size: 10px; white-space: nowrap; }
+  .totales-row td { font-weight: 800; border-top: 2px solid #18181b; background: #f4f4f5; }
+  .footer { border-top: 1px solid #e4e4e7; padding-top: 10px; font-size: 9px; color: #a1a1aa; display: flex; justify-content: space-between; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">${negNombre}</div>
+    <div class="header-sub">Historial de Presupuestos</div>
+  </div>
+  <div class="header-meta">
+    Generado el ${fechaHoy}<br>
+    ${seleccionados.length} presupuesto${seleccionados.length !== 1 ? 's' : ''}
+  </div>
+</div>
+
+<div class="summary">
+  <div class="sum-card">
+    <div class="sum-label">Presupuestos exportados</div>
+    <div class="sum-val">${seleccionados.length}</div>
+  </div>
+  <div class="sum-card">
+    <div class="sum-label">Costo total acumulado</div>
+    <div class="sum-val">Gs ${Math.round(totalCosto).toLocaleString('es-PY')}</div>
+  </div>
+  <div class="sum-card">
+    <div class="sum-label">Precio sugerido acumulado</div>
+    <div class="sum-val green">Gs ${Math.round(totalSugerido).toLocaleString('es-PY')}</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Producto / Cliente</th>
+      <th class="num">Cant.</th>
+      <th>Material</th>
+      <th>Acabados</th>
+      <th class="num">Costo (Gs)</th>
+      <th class="num">Mínimo (Gs)</th>
+      <th class="num">Sugerido (Gs)</th>
+      <th class="num">Premium (Gs)</th>
+      <th>Fecha</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${filas}
+    <tr class="totales-row">
+      <td colspan="4">TOTALES</td>
+      <td class="num">Gs ${Math.round(totalCosto).toLocaleString('es-PY')}</td>
+      <td></td>
+      <td class="num">Gs ${Math.round(totalSugerido).toLocaleString('es-PY')}</td>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="footer">
+  <span>Captus · Sistema de Gestión</span>
+  <span>${negNombre} · ${fechaHoy}</span>
+</div>
+
+</body>
+</html>`;
+
+  // Abrir en ventana nueva y disparar impresión
+  const win = window.open('', '_blank', 'width=1000,height=700');
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => {
+    win.focus();
+    win.print();
+  };
+}
+
+// Formatea fecha corta desde ISO string
+function calcFechaCorta(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-PY', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function calcTimeAgo(ts) {
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return 'ahora';
+  if (m < 60) return m + ' min atrás';
+  const h = Math.floor(m/60);
+  if (h < 24) return h + ' hr atrás';
+  return Math.floor(h/24) + 'd atrás';
+}
+
+// Stub para compatibilidad
+function calcLimpiarHistorial() {
+  if (confirm('¿Querés recargar el historial desde Supabase?')) calcCargarHistorialSupabase();
+}
+
+// ── Panel Materiales ──────────────────────────────────────────────
+
+// Papeles
+function calcRenderMateriales() {
+  const lista = document.getElementById('calc-materiales-lista');
+  if (!lista) return;
+  lista.innerHTML = '';
+  calcState.materiales.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'calc-mat-row';
+    row.innerHTML = `
+      <div class="field" style="margin:0;">
+        <label>Nombre</label>
+        <input type="text" value="${m.nombre}" onchange="calcUpdateMat(${m.id},'nombre',this.value)">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Precio (Gs)</label>
+        <input type="number" value="${m.precio}" min="0" onchange="calcUpdateMat(${m.id},'precio',+this.value)">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Unidades por compra</label>
+        <input type="number" value="${m.unidades}" min="1" onchange="calcUpdateMat(${m.id},'unidades',+this.value)">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>&nbsp;</label>
+        <button class="btn btn-danger btn-sm" onclick="calcEliminarMat(${m.id})" style="width:100%;">✕</button>
+      </div>
+    `;
+    lista.appendChild(row);
+  });
+}
+function calcUpdateMat(id, key, val) {
+  const m = calcState.materiales.find(x => x.id === id);
+  if (m) m[key] = val;
+}
+function calcAgregarMaterial() {
+  calcState.materiales.push({ id: ++calcMatIdCounter, nombre: 'Nuevo material', precio: 0, unidades: 1 });
+  calcRenderMateriales();
+}
+function calcEliminarMat(id) {
+  calcState.materiales = calcState.materiales.filter(m => m.id !== id);
+  calcRenderMateriales();
+}
+
+// Tóner — NUEVO: por cartucho individual
+function calcRenderTonerLista() {
+  const cont = document.getElementById('calc-toner-lista');
+  if (!cont) return;
+
+  // ── DEFENSA: garantizar que calcState.toner siempre tenga los 4 cartuchos ──
+  const defaultToner = {
+    negro:    { precio: 250000, rendimiento: 3000 },
+    cyan:     { precio: 220000, rendimiento: 2500 },
+    magenta:  { precio: 220000, rendimiento: 2500 },
+    amarillo: { precio: 220000, rendimiento: 2500 },
+  };
+  if (!calcState.toner || typeof calcState.toner !== 'object') {
+    calcState.toner = defaultToner;
+  }
+  ['negro','cyan','magenta','amarillo'].forEach(k => {
+    if (!calcState.toner[k] || typeof calcState.toner[k].precio === 'undefined') {
+      calcState.toner[k] = defaultToner[k];
+    }
+  });
+
+  const cartuchos = [
+    { key: 'negro',    emoji: '⬛', label: 'Negro' },
+    { key: 'cyan',     emoji: '🟦', label: 'Cyan' },
+    { key: 'magenta',  emoji: '🟥', label: 'Magenta' },
+    { key: 'amarillo', emoji: '🟨', label: 'Amarillo' },
+  ];
+  cont.innerHTML = cartuchos.map(c => {
+    const t = calcState.toner[c.key];
+    const cpi = t.rendimiento > 0 ? Math.round((t.precio / t.rendimiento) * 100) / 100 : 0;
+    return `
+      <div class="card" style="padding:14px;margin:0;">
+        <div style="font-size:.75rem;font-weight:700;color:var(--ink3);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+          ${c.emoji} ${c.label}
+          <span style="margin-left:auto;color:var(--green);font-size:.7rem;">Gs ${cpi}/imp</span>
+        </div>
+        <div class="field" style="margin-bottom:8px;">
+          <label>Precio del cartucho (Gs)</label>
+          <input type="number" value="${t.precio}" min="0"
+            oninput="calcUpdateToner('${c.key}','precio',+this.value);calcRefreshTonerCpi('${c.key}',this)">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Rendimiento (copias a 100% cob.)</label>
+          <input type="number" value="${t.rendimiento}" min="1"
+            oninput="calcUpdateToner('${c.key}','rendimiento',+this.value);calcRefreshTonerCpi('${c.key}',this)">
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function calcUpdateToner(key, campo, val) {
+  calcState.toner[key][campo] = val;
+}
+
+function calcRefreshTonerCpi(key, inputEl) {
+  // Actualiza el badge "Gs X/imp" en tiempo real sin re-renderizar todo
+  const card   = inputEl.closest('.card');
+  const badge  = card?.querySelector('span[style*="color:var(--green)"]');
+  if (!badge) return;
+  const t   = calcState.toner[key];
+  const cpi = t.rendimiento > 0 ? Math.round((t.precio / t.rendimiento) * 100) / 100 : 0;
+  badge.textContent = `Gs ${cpi}/imp`;
+}
+
+function calcUpdateModoColor() {
+  // Cuando cambia a "solo negro", podría mostrar/ocultar cartuchos color opcionalmente
+  // Por ahora solo hace falta para el cálculo — no hay acción visual extra
+}
+
+// Acabados — NUEVO: lista dinámica
+let calcAcabadoIdCounter = 100;
+
+function calcRenderAcabadosLista() {
+  const lista = document.getElementById('calc-acabados-lista');
+  if (!lista) return;
+  if (!calcState.acabados.length) {
+    lista.innerHTML = `<div style="text-align:center;padding:20px;color:var(--ink3);font-size:.82rem;border:1.5px dashed var(--border);border-radius:var(--r-sm);">Todavía no hay acabados. Usá el botón de abajo para agregar.</div>`;
+    return;
+  }
+  lista.innerHTML = '';
+  calcState.acabados.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'calc-mat-row';
+    row.innerHTML = `
+      <div class="field" style="margin:0;grid-column:span 2;">
+        <label>Nombre del acabado</label>
+        <input type="text" value="${a.nombre}" onchange="calcUpdateAcabado(${a.id},'nombre',this.value)">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Costo por pedido (Gs)</label>
+        <input type="number" value="${a.costo}" min="0" onchange="calcUpdateAcabado(${a.id},'costo',+this.value)">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>&nbsp;</label>
+        <button class="btn btn-danger btn-sm" onclick="calcEliminarAcabado(${a.id})" style="width:100%;">✕</button>
+      </div>
+    `;
+    lista.appendChild(row);
+  });
+}
+
+function calcUpdateAcabado(id, key, val) {
+  const a = calcState.acabados.find(x => x.id === id);
+  if (a) a[key] = val;
+}
+
+function calcAgregarAcabado() {
+  calcState.acabados.push({ id: ++calcAcabadoIdCounter, nombre: 'Nuevo acabado', costo: 0 });
+  calcRenderAcabadosLista();
+  calcRenderChipsAcabados();
+}
+
+function calcEliminarAcabado(id) {
+  calcState.acabados = calcState.acabados.filter(a => a.id !== id);
+  calcRenderAcabadosLista();
+  calcRenderChipsAcabados();
+}
+
+// Chips dinámicos de acabados en el panel Calcular
+function calcRenderChipsAcabados() {
+  const cont = document.getElementById('calc-acabados-chips');
+  if (!cont) return;
+  if (!calcState.acabados.length) {
+    cont.innerHTML = `<span style="font-size:.78rem;color:var(--ink3);">Configurá acabados en la pestaña Materiales.</span>`;
+    return;
+  }
+  cont.innerHTML = calcState.acabados.map(a =>
+    `<div class="calc-chip" data-id="${a.id}" onclick="calcToggleChip(this)">${a.nombre}</div>`
+  ).join('');
+}
+
+async function calcGuardarMateriales() {
+  // MODIFICADO: guarda en localStorage + Supabase
+  calcSaveState();
+  calcPopulateMaterialSelect();
+  calcRenderChipsAcabados();
+  showToast('⏳ Guardando…');
+  await calcSaveSupabase();
+  showToast('✅ Materiales y acabados guardados en la nube ☁️');
+}
+
+// ── Panel Mi Taller ──
+function calcLoadTallerFields() {
+  const t = calcState.taller;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('calc-cf-deudas', t.deudas);
+  set('calc-cf-luz',    t.luz);
+  set('calc-cf-insumos',t.insumos);
+  set('calc-cf-otros',  t.otros);
+  set('calc-t-horas',   t.horasDia);
+  set('calc-t-dias',    t.diasMes);
+  set('calc-t-objetivo',t.objetivo);
+  calcRecalcCostoHora();
+  calcUpdateCFTotal();
+}
+
+function calcUpdateCFTotal() {
+  const ids = ['calc-cf-deudas','calc-cf-luz','calc-cf-insumos','calc-cf-otros'];
+  const total = ids.reduce((s, id) => s + (+document.getElementById(id)?.value || 0), 0);
+  const el = document.getElementById('calc-cf-total');
+  if (el) el.textContent = fmtGs(total);
+}
+
+function calcRecalcCostoHora() {
+  const d = +document.getElementById('calc-cf-deudas')?.value || 0;
+  const l = +document.getElementById('calc-cf-luz')?.value    || 0;
+  const i = +document.getElementById('calc-cf-insumos')?.value|| 0;
+  const o = +document.getElementById('calc-cf-otros')?.value  || 0;
+  const obj= +document.getElementById('calc-t-objetivo')?.value|| 0;
+  const h = +document.getElementById('calc-t-horas')?.value   || 6;
+  const dias= +document.getElementById('calc-t-dias')?.value  || 22;
+  const totalMes = d + l + i + o + obj;
+  const horasMes = h * dias;
+  const ch = horasMes > 0 ? Math.round(totalMes / horasMes) : 0;
+  const elH = document.getElementById('calc-t-costo-hora');
+  if (elH) elH.value = ch;
+  calcState.taller._costoHora = ch;
+  calcUpdateCFTotal();
+}
+
+// Listeners para recalcular en tiempo real en el panel Taller
+document.addEventListener('input', e => {
+  const tallerIds = ['calc-cf-deudas','calc-cf-luz','calc-cf-insumos','calc-cf-otros','calc-t-horas','calc-t-dias','calc-t-objetivo'];
+  if (tallerIds.includes(e.target.id)) calcRecalcCostoHora();
+});
+
+async function calcGuardarTaller() {
+  // MODIFICADO: guarda en localStorage + Supabase
+  calcState.taller.deudas   = +document.getElementById('calc-cf-deudas').value  || 0;
+  calcState.taller.luz      = +document.getElementById('calc-cf-luz').value      || 0;
+  calcState.taller.insumos  = +document.getElementById('calc-cf-insumos').value  || 0;
+  calcState.taller.otros    = +document.getElementById('calc-cf-otros').value    || 0;
+  calcState.taller.horasDia = +document.getElementById('calc-t-horas').value    || 6;
+  calcState.taller.diasMes  = +document.getElementById('calc-t-dias').value     || 22;
+  calcState.taller.objetivo = +document.getElementById('calc-t-objetivo').value || 0;
+  calcRecalcCostoHora();
+  calcSaveState();
+  showToast('⏳ Guardando…');
+  await calcSaveSupabase();
+  showToast('✅ Configuración del taller guardada en la nube ☁️');
+}
+
+// Mantener compatibilidad: setCalcTab ya no se usa pero no romper si alguien lo llama
+function setCalcTab(){}
+function initCalc(){}
+function calcP(){}
 function g(id){return +document.getElementById(id)?.value||0;}
-function calcP(){
-  const cph=(g('ca_alq')+g('ca_ser')+g('ca_sue'))/(g('ca_hs')||1);
-  let mat=0,mins=0,u=1,lu='u';
-  if(currentCalcTab==='tarjetas'){const p=g('t_p')||1;mat=(g('t_papel')+g('t_tinta')+g('t_ext'))*p;mins=g('t_min');u=p;lu='paquete';}
-  else if(currentCalcTab==='talonarios'){const c=g('ta_c')||1,h=g('ta_h')||1;mat=(g('ta_papel')+g('ta_tinta'))*h*c+g('ta_enc')*c;mins=g('ta_min');u=c;lu='talonario';}
-  else if(currentCalcTab==='volantes'){const c=g('v_c')||1;mat=(g('v_papel')+g('v_tinta'))*c;mins=g('v_min');u=c;lu='volante';}
-  else{const p=g('e_pl')||1;mat=(g('e_papel')+g('e_tinta')+g('e_corte'))*p;mins=g('e_min');u=p;lu='plancha';}
-  const costo=mat+cph*(mins/60)+g('ca_emp'),psi=costo*(1+g('ca_mar')/100),imp=psi*(g('ca_iva')/100),pf=psi+imp,gan=psi-costo;
-  const cu=v=>u>0?fmtGs(v/u)+'/'+lu:'—';
-  document.getElementById('c-costo').textContent=fmtGs(costo);document.getElementById('c-cu').textContent=cu(costo);
-  document.getElementById('c-precio').textContent=fmtGs(psi);document.getElementById('c-pu').textContent=cu(psi);
-  document.getElementById('c-total').textContent=fmtGs(pf);document.getElementById('c-tu').textContent=cu(pf);
-  document.getElementById('c-gan').textContent=fmtGs(gan);
-  document.getElementById('c-gpct').textContent=costo>0?`${((gan/costo)*100).toFixed(1)}% sobre costo`:'—';
-}
+
+// ══ FIN PRESUPUESTADOR v2 ══
 
 // ═══ CONFIG ════════════════════════════════
 // ═══ CONFIG ════════════════════════════════
@@ -5596,6 +6632,17 @@ function openVentaDetail(id) {
     <div style="background:var(--surface2);border-radius:var(--r-sm);padding:14px 16px;">
       <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:8px;">Ítems</div>
       ${itemsHtml}
+      <!-- ── CORREGIDO Bug 2: mostrar subtotal y descuento si aplica ── -->
+      ${v.descuento_monto > 0 ? `
+      <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:.83rem;color:var(--ink3);">
+        <span>Subtotal</span>
+        <span>${fmtMoneda(v.subtotal, principal)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0 0;font-size:.83rem;color:var(--red);">
+        <span>Descuento ${v.descuento_tipo === 'pct' ? v.descuento_valor + '%' : 'fijo'}</span>
+        <span>−${fmtMoneda(v.descuento_monto, principal)}</span>
+      </div>` : ''}
+      <!-- ── FIN CORREGIDO Bug 2 ── -->
       <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-weight:800;font-size:.92rem;">
         <span>Total</span>
         <span style="color:var(--green);">${fmtMoneda(v.total, principal)}</span>
@@ -5655,6 +6702,15 @@ async function confirmarDeleteVenta() {
 
     // 1. Eliminar ítems relacionados
     await sb.from('venta_items').delete().eq('venta_id', v.id);
+    // ── CORREGIDO Bug 3: eliminar cuenta corriente asociada si era venta fiada ──
+    const ccAsociada = DB.cuentasCorrientes.find(c => c.venta_id === v.id);
+    if (ccAsociada) {
+      await sb.from('pagos_cc').delete().eq('cuenta_id', ccAsociada.id);
+      await sb.from('cuentas_corrientes').delete().eq('id', ccAsociada.id);
+      DB.cuentasCorrientes = DB.cuentasCorrientes.filter(c => c.id !== ccAsociada.id);
+      DB.pagosCC = (DB.pagosCC || []).filter(p => p.cuenta_id !== ccAsociada.id);
+    }
+    // ── FIN CORREGIDO Bug 3 ──
     // 2. Eliminar la venta
     const { error } = await sb.from('ventas').delete().eq('id', v.id);
     if (error) throw error;
@@ -5662,8 +6718,15 @@ async function confirmarDeleteVenta() {
     DB.ventas = DB.ventas.filter(x => x.id !== v.id);
     _ventaDetail = null;
     closeModal('venta-detail-overlay');
+    // ── CORREGIDO Bug 5: también refrescar movimientos y fiado ──
     renderBalance(); renderInicio(); renderProductos(); renderPosGrid();
-    showToast('Venta eliminada · Stock restaurado ✓');
+    renderFiado(); updateBadgeFiado();
+    if (document.getElementById('screen-movimientos')?.classList.contains('active')) {
+      renderMovimientosCaja();
+    }
+    // ── FIN CORREGIDO Bug 5 ──
+    const msgCC = ccAsociada ? ' · Deuda eliminada ✓' : '';
+    showToast(`Venta eliminada · Stock restaurado ✓${msgCC}`);
   } catch(e) { console.error(e); showToast('⚠️ Error al eliminar la venta'); }
 }
 
@@ -6122,12 +7185,11 @@ async function deleteCliente(id) {
 // COMPARTIR CATÁLOGO PÚBLICO ── AGREGADO ──
 // ══════════════════════════════════════════════════════════
 function compartirCatalogo() {
-  // Construye el link automáticamente desde la URL actual de Nomi
+  // ── MODIFICADO SEGURIDAD: incluir negocio_id en el link ──
   const base = window.location.origin + window.location.pathname
-    .replace(/\/[^/]*$/, '/');          // carpeta del archivo actual
-  const link = base + 'catalogo.html';
+    .replace(/\/[^/]*$/, '/');
+  const link = base + 'catalogo.html?n=' + negocioId;
 
-  // Intenta copiar al portapapeles
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(link).then(() => {
       showToast('🔗 Link copiado: ' + link);
@@ -6137,6 +7199,7 @@ function compartirCatalogo() {
   } else {
     _mostrarLinkCatalogo(link);
   }
+  // ── FIN MODIFICADO SEGURIDAD ──
 }
 
 // Fallback: muestra el link en un prompt para que el usuario lo copie a mano
@@ -6319,17 +7382,26 @@ function renderFiado(){
 
   // ── LÍNEAS AGREGADAS: leer buscador y filtrar por nombre ──
   const q = (document.getElementById('fiado-search')?.value || '').trim().toLowerCase();
-  const todasPendientes = DB.cuentasCorrientes.filter(c => c.estado === 'pendiente');
-  const todasPagadas    = DB.cuentasCorrientes.filter(c => c.estado === 'pagado');
+  const todasPendientes  = DB.cuentasCorrientes.filter(c => c.estado === 'pendiente');
+  const todasPagadas     = DB.cuentasCorrientes.filter(c => c.estado === 'pagado');
+  // ── CORREGIDO Bug 2: incluir canceladas como lista propia ──
+  const todasCanceladas  = DB.cuentasCorrientes.filter(c => c.estado === 'cancelado');
   const pendientes = q
     ? todasPendientes.filter(c => (c.cliente_nombre || '').toLowerCase().includes(q))
     : todasPendientes;
   const pagados = q
     ? todasPagadas.filter(c => (c.cliente_nombre || '').toLowerCase().includes(q))
     : todasPagadas;
+  const canceladas = q
+    ? todasCanceladas.filter(c => (c.cliente_nombre || '').toLowerCase().includes(q))
+    : todasCanceladas;
+  // ── FIN CORREGIDO Bug 2 ──
   // ── FIN LÍNEAS AGREGADAS ──
   const totalPend  = pendientes.reduce((s,c) => s + (c.monto_original - c.monto_pagado), 0);
-  const totalCobr  = DB.cuentasCorrientes.reduce((s,c) => s + c.monto_pagado, 0);
+  // ── CORREGIDO Bug 1: solo suma lo realmente cobrado (excluye canceladas) ──
+  const totalCobr  = DB.cuentasCorrientes
+    .filter(c => c.estado === 'pagado' || c.estado === 'pendiente')
+    .reduce((s,c) => s + (c.monto_pagado || 0), 0);
 
   // Clientes únicos con deuda
   const clientesDeudores = [...new Set(pendientes.map(c => c.cliente_nombre))].length;
@@ -6351,7 +7423,8 @@ function renderFiado(){
     }
     lista.innerHTML = pendientes.map(cc => {
       const debe    = cc.monto_original - cc.monto_pagado;
-      const pct     = Math.round((cc.monto_pagado / cc.monto_original) * 100);
+      // ── CORREGIDO Bug 3: evitar NaN si monto_original es 0 ──
+      const pct     = cc.monto_original > 0 ? Math.round((cc.monto_pagado / cc.monto_original) * 100) : 0;
       return `<div class="card" style="margin-bottom:12px;cursor:pointer;" onclick="openCCDetail(${cc.id})">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
           <div style="flex:1;min-width:0;">
@@ -6394,6 +7467,32 @@ function renderFiado(){
           </div>
         </div>
       </div>`).join('');
+  }
+
+  // ── Tab: Canceladas ──
+  // ── AGREGADO Bug 2: render de deudas canceladas ──
+  else if(fiadoTab === 'cancelado'){
+    if(!canceladas.length){
+      lista.innerHTML = `<div class="empty-state"><div class="empty-icon">🚫</div><div class="empty-text">Sin deudas canceladas.</div></div>`;
+      return;
+    }
+    lista.innerHTML = canceladas.map(cc => {
+      const notasCancelacion = (cc.notas || '').match(/\[CANCELADO: (.+?)\]/)?.[1] || '—';
+      return `
+      <div class="card" style="margin-bottom:12px;opacity:.75;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-weight:800;font-size:.95rem;">${cc.cliente_nombre || '—'}</div>
+            <div style="font-size:.75rem;color:var(--ink3);">Venta #${cc.venta_id} · ${fmtDate(cc.fecha)}</div>
+            <div style="font-size:.72rem;color:var(--ink3);margin-top:2px;">Motivo: ${notasCancelacion}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:800;font-size:1rem;color:var(--ink3);">${fmtGs(cc.monto_original)}</div>
+            <span class="tag" style="font-size:.65rem;background:var(--surface2);color:var(--ink3);">🚫 Cancelada</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
   }
 
   // ── Tab: Por cliente ──
@@ -6443,7 +7542,8 @@ async function openCCDetail(ccId){
   ccActual = cc;
 
   const debe = cc.monto_original - cc.monto_pagado;
-  const pct  = Math.round((cc.monto_pagado / cc.monto_original) * 100);
+  // ── CORREGIDO Bug 3: evitar NaN si monto_original es 0 ──
+  const pct  = cc.monto_original > 0 ? Math.round((cc.monto_pagado / cc.monto_original) * 100) : 0;
 
   // Info principal
   document.getElementById('cc-detail-info').innerHTML = `
@@ -6530,12 +7630,15 @@ async function registrarPagoCC(){
 
   try {
     // 1. Insertar el pago en pagos_cc
+    // ── CORREGIDO: se agrega negocio_id y cliente_nombre al insert ──
     const {error: pe} = await sb.from('pagos_cc').insert({
-      cuenta_id:   ccActual.id,
-      cliente_id:  ccActual.cliente_id || null,
+      negocio_id:     negocioId,
+      cuenta_id:      ccActual.id,
+      cliente_id:     ccActual.cliente_id || null,
+      cliente_nombre: ccActual.cliente_nombre || null,
       monto,
-      metodo_pago: metodo,
-      notas:       nota || null
+      metodo_pago:    metodo,
+      notas:          nota || null
     });
     if(pe) throw pe;
 
@@ -6557,14 +7660,46 @@ async function registrarPagoCC(){
       ccActual = DB.cuentasCorrientes[idx];
     }
 
+  // ── CORREGIDO: cc → ccActual (cc no existe en este scope) ──
     showToast(nuevoEstado === 'pagado'
-      ? `✅ ¡Cuenta saldada! ${cc.cliente_nombre} pagó todo.`
+      ? `✅ ¡Cuenta saldada! ${ccActual.cliente_nombre} pagó todo.`
       : `💰 Pago de ${fmtGs(monto)} registrado.`
     );
 
     closeModal('cc-detail-overlay');
+
+    // ── AGREGADO: agregar el pago al caché local DB.pagosCC ──
+    const clienteNombre = ccActual.cliente_nombre
+      || DB.clientes.find(c => c.id === ccActual.cliente_id)?.nombre
+      || 'Cliente';
+    DB.pagosCC.unshift({
+      id:           Date.now(),
+      cuenta_id:    ccActual.id,
+      cliente_id:   ccActual.cliente_id || null,
+      cliente_nombre: clienteNombre,
+      monto:        monto,
+      metodo_pago:  metodo,
+      notas:        nota || null,
+      created_at:   new Date().toISOString(),
+      // campos internos para renderBalance / renderMovimientosCaja
+      _t:   'p',
+      _d:   'Pago fiado · ' + clienteNombre,
+      _ic:  '💳',
+      _c:   'var(--green)',
+      date: new Date().toISOString(),
+      total: monto
+    });
+    // ── FIN AGREGADO ──
+
     renderFiado();
     updateBadgeFiado();
+    // ── CORREGIDO Bug 4: refrescar inicio, balance y movimientos tras pago CC ──
+    renderInicio();
+    renderBalance();
+    if (document.getElementById('screen-movimientos')?.classList.contains('active')) {
+      renderMovimientosCaja();
+    }
+    // ── FIN CORREGIDO Bug 4 ──
 
   } catch(e){
     console.error(e);
@@ -7464,7 +8599,19 @@ window.addEventListener('popstate', function(e) {
   if (overlay?.classList.contains('open')) {
     overlay.classList.remove('open');
   }
-});
+
+ });
+
+// ── AGREGADO: detalle simple de pago de fiado ──
+function openDetallePagoCC(id) {
+  const p = (DB.pagosCC || []).find(x => x.id === id);
+  if (!p) return;
+  const cliente = p.cliente_nombre
+    || DB.clientes.find(c => c.id === p.cliente_id)?.nombre
+    || 'Cliente';
+  showToast(`💳 ${cliente} · ${fmtGs(p.monto)} · ${p.metodo_pago || 'Efectivo'} · ${fmtDate(p.fecha || p.date)}`);
+}
+// ── FIN AGREGADO ──
 
 // ══ FIN MODAL MÁS ══
 

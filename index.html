@@ -226,6 +226,28 @@ hr.divider{border:none;border-top:1px dashed var(--border);margin:14px 0;}
 .crb-val{font-size:1.2rem;font-weight:800;margin-top:5px;letter-spacing:-.02em;}
 .crb-sub{font-size:.68rem;margin-top:2px;color:#666;}
 
+/* ══ AGREGADO: estilos del Presupuestador v2 ══ */
+.calc-nav-btn{padding:12px 18px;border:none;background:transparent;font-family:var(--font);font-size:.82rem;font-weight:600;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.calc-nav-btn:hover{color:var(--ink);}
+.calc-nav-btn.active{color:var(--ink);border-bottom-color:var(--ink);font-weight:800;}
+.calc-panel{display:none;}
+.calc-panel.active{display:block;}
+.calc-preset-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 10px;text-align:center;cursor:pointer;transition:all .15s;user-select:none;}
+.calc-preset-card:hover{border-color:var(--ink);transform:translateY(-2px);box-shadow:var(--shadow);}
+.calc-preset-card.chosen{border-color:var(--green);background:var(--green-l);}
+.calc-chip{padding:6px 12px;border-radius:100px;border:1.5px solid var(--border);background:var(--surface2);font-size:.75rem;font-weight:600;cursor:pointer;transition:all .12s;user-select:none;}
+.calc-chip:hover{border-color:var(--ink);}
+.calc-chip.selected{background:var(--ink);color:white;border-color:var(--ink);}
+.calc-breakdown-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--border);color:var(--ink2);}
+.calc-breakdown-row.total-row{color:var(--ink);font-weight:800;border-bottom:2px solid var(--ink);padding:7px 0;font-size:.9rem;}
+.calc-hist-item{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.calc-hist-name{font-weight:700;font-size:.9rem;}
+.calc-hist-detail{font-size:.75rem;color:var(--ink3);margin-top:2px;}
+.calc-hist-price{font-weight:800;font-size:1rem;color:var(--green);white-space:nowrap;}
+.calc-mat-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px;}
+@media(max-width:600px){.calc-mat-row{grid-template-columns:1fr 1fr;}}
+/* ══ FIN AGREGADO presupuestador v2 ══ */
+
 /* SETTINGS */
 .settings-section{margin-bottom:24px;}
 .ss-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
@@ -1245,9 +1267,9 @@ html.dark button[onclick="exportReportePDF()"] {
 <!-- ══════════════════════════════════════════════════════ -->
 <!-- TOUR DE BIENVENIDA — AGREGADO                         -->
 <!-- ══════════════════════════════════════════════════════ -->
-<div id="tour-overlay" style="display:none;position:fixed;inset:0;z-index:10000;">
+<div id="tour-overlay" style="display:none;position:fixed;inset:0;z-index:10000;pointer-events:auto;">
   <!-- Capa oscura con hueco (spotlight) -->
-  <div id="tour-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.55);pointer-events:none;"></div>
+  <div id="tour-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.55);"></div>
   <!-- Spotlight highlight -->
   <div id="tour-spotlight" style="
     position:absolute;
@@ -1917,7 +1939,8 @@ html.dark button[onclick="exportReportePDF()"] {
         style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);
           background:var(--surface);color:var(--ink);font-size:.82rem;cursor:pointer;font-family:var(--font);">
         <option value="">🔀 Todo</option>
-        <option value="i">🛒 Solo ingresos</option>
+        <option value="i">🛒 Solo ventas</option>
+        <option value="p">💳 Solo pagos fiado</option>
         <option value="e">💸 Solo egresos</option>
       </select>
       <!-- Buscador -->
@@ -2076,6 +2099,9 @@ html.dark button[onclick="exportReportePDF()"] {
             onclick="setFiadoTab('pagado',this)" style="flex:1;">✅ Saldados</button>
           <button class="seg-btn" id="fiado-tab-clientes"
             onclick="setFiadoTab('clientes',this)" style="flex:1;">👤 Por cliente</button>
+          <!-- ── AGREGADO Bug 2: pestaña de canceladas ── -->
+          <button class="seg-btn" id="fiado-tab-cancelado"
+            onclick="setFiadoTab('cancelado',this)" style="flex:1;">🚫 Canceladas</button>
         </div>
         <div style="position:relative;">
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);
@@ -2605,26 +2631,316 @@ html.dark button[onclick="exportReportePDF()"] {
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PANTALLA PRESUPUESTADOR — NUEVA v2 CON SUPABASE       -->
+<!-- CAMBIADO: estructura completa con 4 pestañas          -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div class="screen" id="screen-calc">
-  <div class="topbar"><div><div class="topbar-title">Presupuestador</div><div class="topbar-sub">Calculá costos y precio de venta para cada trabajo</div></div></div>
-  <div class="content">
-    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;" id="calc-tabs">
-      <button class="btn btn-primary btn-sm" onclick="setCalcTab('tarjetas',this)">&#x1FAAA; Tarjetas</button>
-      <button class="btn btn-ghost btn-sm" onclick="setCalcTab('talonarios',this)">&#x1F4CB; Talonarios</button>
-      <button class="btn btn-ghost btn-sm" onclick="setCalcTab('volantes',this)">&#x1F4C4; Volantes</button>
-      <button class="btn btn-ghost btn-sm" onclick="setCalcTab('etiquetas',this)">&#x1F3F7;&#xFE0F; Etiquetas</button>
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">🧮 Presupuestador</div>
+      <div class="topbar-sub">Calculá costos y precio de venta para cada trabajo</div>
     </div>
-    <div class="calc-result" style="margin-bottom:18px;">
-      <div class="crb-grid">
-        <div><div class="crb-label">Costo total</div><div class="crb-val" style="color:#f87171" id="c-costo">Gs 0</div><div class="crb-sub" id="c-cu">— /u</div></div>
-        <div><div class="crb-label">Precio s/impuesto</div><div class="crb-val" style="color:white" id="c-precio">Gs 0</div><div class="crb-sub" id="c-pu">— /u</div></div>
-        <div><div class="crb-label">Total c/IVA</div><div class="crb-val" style="color:#4ade80" id="c-total">Gs 0</div><div class="crb-sub" id="c-tu">— /u</div></div>
-        <div><div class="crb-label">Tu ganancia</div><div class="crb-val" style="color:#fbbf24" id="c-gan">Gs 0</div><div class="crb-sub" style="color:#fbbf24" id="c-gpct">—</div></div>
+    <div class="topbar-actions">
       </div>
-    </div>
-    <div class="grid-3" id="calc-body"></div>
   </div>
+
+  <!-- Tabs de navegación del presupuestador -->
+  <div style="display:flex;gap:0;border-bottom:1.5px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto;" id="calc-nav-tabs">
+    <button class="calc-nav-btn active" onclick="switchCalcPanel('calcular',this)">📐 Calcular</button>
+    <button class="calc-nav-btn" onclick="switchCalcPanel('materiales',this)">📦 Materiales</button>
+    <button class="calc-nav-btn" onclick="switchCalcPanel('taller',this)">⚙️ Mi Taller</button>
+    <button class="calc-nav-btn" onclick="switchCalcPanel('historial',this)">🗂 Historial</button>
+  </div>
+
+  <!-- ── PANEL: CALCULAR ── -->
+  <div class="calc-panel active" id="cpanel-calcular">
+    <div class="content" style="max-width:900px;">
+
+      <!-- Nota instructiva -->
+      <div style="background:var(--amber-l);border-left:3px solid var(--amber);border-radius:var(--r-sm);padding:10px 14px;font-size:.82rem;color:var(--amber);margin-bottom:18px;line-height:1.6;">
+        ⚡ Completá los datos de <strong>Mi Taller</strong> y <strong>Materiales</strong> una sola vez. Luego calcular es cuestión de segundos.
+      </div>
+
+      <!-- Selector de tipo de producto (presets) -->
+      <div style="margin-bottom:18px;">
+        <div class="card-title" style="margin-bottom:12px;">Tipo de producto</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;" id="calc-presets-grid">
+          <div class="calc-preset-card chosen" data-preset="tarjeta" onclick="calcSelectPreset(this)">
+            <div style="font-size:1.6rem;margin-bottom:6px;">🪪</div>
+            <div style="font-size:.78rem;font-weight:700;">Tarjeta</div>
+          </div>
+          <div class="calc-preset-card" data-preset="talonario" onclick="calcSelectPreset(this)">
+            <div style="font-size:1.6rem;margin-bottom:6px;">📋</div>
+            <div style="font-size:.78rem;font-weight:700;">Talonario</div>
+          </div>
+          <div class="calc-preset-card" data-preset="volante" onclick="calcSelectPreset(this)">
+            <div style="font-size:1.6rem;margin-bottom:6px;">📄</div>
+            <div style="font-size:.78rem;font-weight:700;">Volante</div>
+          </div>
+          <div class="calc-preset-card" data-preset="calcomania" onclick="calcSelectPreset(this)">
+            <div style="font-size:1.6rem;margin-bottom:6px;">🏷️</div>
+            <div style="font-size:.78rem;font-weight:700;">Calcomanía</div>
+          </div>
+          <div class="calc-preset-card" data-preset="ficha" onclick="calcSelectPreset(this)">
+            <div style="font-size:1.6rem;margin-bottom:6px;">📊</div>
+            <div style="font-size:.78rem;font-weight:700;">Ficha cobro</div>
+          </div>
+          <div class="calc-preset-card" data-preset="custom" onclick="calcSelectPreset(this)">
+            <div style="font-size:1.6rem;margin-bottom:6px;">✏️</div>
+            <div style="font-size:.78rem;font-weight:700;">Otro</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario principal de cálculo -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Detalles del pedido</div>
+        <div class="grid-2" style="margin-bottom:14px;">
+          <div class="field">
+            <label>Nombre del producto / cliente</label>
+            <input type="text" id="calc-nombre" placeholder="Ej: Tarjetas Ferretería López">
+          </div>
+          <div class="field">
+            <label>Cantidad (unidades finales)</label>
+            <input type="number" id="calc-cantidad" value="1000" min="1">
+          </div>
+        </div>
+        <div class="grid-3" style="margin-bottom:14px;">
+          <div class="field">
+            <label>Material / Papel</label>
+            <select id="calc-material">
+              <option value="">— elegir —</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Piezas por pliego/hoja</label>
+            <input type="number" id="calc-piezas" value="8" min="1">
+          </div>
+          <div class="field">
+            <label>Impresiones por pieza</label>
+            <select id="calc-caras">
+              <option value="1">1 — Solo frente</option>
+              <option value="2">2 — Doble faz</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-bottom:14px;">
+          <div class="field">
+            <label>Modo de impresión</label>
+            <select id="calc-modo-color" onchange="calcUpdateModoColor()">
+              <option value="color">🎨 Color (CMYK)</option>
+              <option value="negro">⬛ Solo negro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cobertura de tóner: <span id="calc-cob-lbl" style="color:var(--green);font-weight:800;">50%</span></label>
+            <input type="range" id="calc-cobertura" min="1" max="100" step="1" value="50"
+              oninput="document.getElementById('calc-cob-lbl').textContent=this.value+'%'"
+              style="width:100%;margin-top:8px;accent-color:var(--green);">
+          </div>
+          <div class="field">
+            <label>Tiempo de producción (min)</label>
+            <input type="number" id="calc-tiempo" value="60" min="1">
+          </div>
+        </div>
+
+        <!-- Acabados como chips — ahora se renderizan dinámicamente desde calcState -->
+        <div class="field">
+          <label>Acabados incluidos</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;" id="calc-acabados-chips">
+            <!-- se renderiza por calcRenderChipsAcabados() -->
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:4px;">
+          <div class="field">
+            <label>Costo extra / delivery (Gs)</label>
+            <input type="number" id="calc-extra" value="0" min="0">
+          </div>
+          <div class="field">
+            <label>Ganancia deseada: <span id="calc-margen-lbl" style="color:var(--green);font-weight:800;">40%</span></label>
+            <input type="range" id="calc-margen" min="10" max="100" step="5" value="40"
+              oninput="document.getElementById('calc-margen-lbl').textContent=this.value+'%'"
+              style="width:100%;margin-top:8px;accent-color:var(--green);">
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="calcularPresupuesto()">▶ Calcular precio</button>
+      </div>
+
+      <!-- Resultado del cálculo -->
+      <div id="calc-resultado" style="display:none;">
+
+        <!-- Resumen de precios (panel oscuro) -->
+        <div class="calc-result" style="margin-bottom:14px;">
+          <div style="font-size:.8rem;font-weight:700;opacity:.5;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;" id="calc-res-titulo">Resultado</div>
+          <div class="crb-grid">
+            <div>
+              <div class="crb-label">Costo total</div>
+              <div class="crb-val" style="color:#f87171;" id="calc-c-costo">Gs 0</div>
+              <div class="crb-sub" id="calc-c-cu">—</div>
+            </div>
+            <div>
+              <div class="crb-label">Precio mínimo</div>
+              <div class="crb-val" style="color:#fbbf24;" id="calc-c-min">Gs 0</div>
+              <div class="crb-sub">No bajés de acá</div>
+            </div>
+            <div>
+              <div class="crb-label">Precio sugerido</div>
+              <div class="crb-val" style="color:#4ade80;" id="calc-c-precio">Gs 0</div>
+              <div class="crb-sub" id="calc-c-pu">—</div>
+            </div>
+            <div>
+              <div class="crb-label">Precio premium</div>
+              <div class="crb-val" style="color:white;" id="calc-c-premium">Gs 0</div>
+              <div class="crb-sub">+20% extra</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desglose de costos -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">Desglose de costos</div>
+          <div id="calc-breakdown" style="font-size:.85rem;"></div>
+
+          <!-- Barra de margen -->
+          <div style="margin-top:14px;">
+            <div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;color:var(--ink3);margin-bottom:5px;">
+              <span>Margen sobre precio sugerido</span>
+              <span id="calc-margen-pct" style="color:var(--green);font-weight:800;">—</span>
+            </div>
+            <div style="height:8px;background:var(--border);border-radius:100px;overflow:hidden;">
+              <div id="calc-margen-bar" style="height:100%;width:0%;background:var(--green);border-radius:100px;transition:width .4s ease;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones del resultado -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="calcCopiarWhatsapp()">📋 Copiar para WhatsApp</button>
+          <button class="btn btn-green btn-sm" id="calc-save-btn2" onclick="calcGuardarEnSupabase()">☁️ Guardar presupuesto</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── PANEL: MATERIALES ── -->
+  <div class="calc-panel" id="cpanel-materiales">
+    <div class="content" style="max-width:900px;">
+
+      <div style="background:var(--blue-l);border-left:3px solid var(--blue);border-radius:var(--r-sm);padding:10px 14px;font-size:.82rem;color:var(--blue);margin-bottom:18px;line-height:1.6;">
+        📦 Configurá cada papel o material. Si comprás por resma/paquete, ingresá el precio total y cuántas hojas trae. Si comprás suelto, precio por unidad y 1 en cantidad.
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Papeles y materiales</div>
+        <div id="calc-materiales-lista"></div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;border-style:dashed;" onclick="calcAgregarMaterial()">+ Agregar material</button>
+      </div>
+
+      <!-- ── MODIFICADO: tóner por cartucho + rendimiento ── -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">🖨️ Cartuchos de tóner / tinta</div>
+        <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px;line-height:1.6;">
+          Ingresá el precio de cada cartucho y cuántas copias rinde. El costo por impresión se calcula automáticamente según el % de cobertura que elijas al presupuestar.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="calc-toner-lista">
+          <!-- se renderiza por JS -->
+        </div>
+        <div style="margin-top:12px;padding:10px 14px;background:var(--surface2);border-radius:var(--r-sm);font-size:.8rem;color:var(--ink3);">
+          💡 <strong>Cómo funciona:</strong> si un cartucho cuesta Gs 250.000 y rinde 3.000 copias a 100% de cobertura, a 50% de cobertura rinde el doble → Gs 41/copia.
+        </div>
+      </div>
+
+      <!-- ── MODIFICADO: acabados dinámicos con nombre y monto ── -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">✨ Acabados</div>
+        <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px;line-height:1.6;">
+          Agregá cada acabado con su nombre y costo por pedido. Aparecerán como chips al calcular.
+        </p>
+        <div id="calc-acabados-lista"></div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;border-style:dashed;" onclick="calcAgregarAcabado()">+ Agregar acabado</button>
+      </div>
+
+      <button class="btn btn-green" onclick="calcGuardarMateriales()">💾 Guardar materiales y acabados</button>
+    </div>
+  </div>
+
+  <!-- ── PANEL: MI TALLER ── -->
+  <div class="calc-panel" id="cpanel-taller">
+    <div class="content" style="max-width:700px;">
+
+      <div style="background:var(--purple-l);border-left:3px solid var(--purple);border-radius:var(--r-sm);padding:10px 14px;font-size:.82rem;color:var(--purple);margin-bottom:18px;line-height:1.6;">
+        ⚙️ Estos datos calculan cuánto cuesta cada minuto de tu trabajo y cuánto necesitás cobrar mínimo para no trabajar a pérdida.
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Costos fijos mensuales (Gs)</div>
+        <div class="grid-2">
+          <div class="field"><label>Cuotas / préstamos</label><input type="number" id="calc-cf-deudas" value="0" min="0"></div>
+          <div class="field"><label>Electricidad estimada</label><input type="number" id="calc-cf-luz" value="0" min="0"></div>
+          <div class="field"><label>Insumos fijos (rollos, cintas…)</label><input type="number" id="calc-cf-insumos" value="0" min="0"></div>
+          <div class="field"><label>Otros costos fijos</label><input type="number" id="calc-cf-otros" value="0" min="0"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);margin-top:4px;font-weight:700;font-size:.88rem;">
+          <span>Total costos fijos / mes</span>
+          <span id="calc-cf-total" style="color:var(--red);">Gs 0</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Tu tiempo y objetivo de ingresos</div>
+        <div class="grid-2">
+          <div class="field"><label>Horas productivas por día</label><input type="number" id="calc-t-horas" value="6" min="1" max="16"></div>
+          <div class="field"><label>Días laborables por mes</label><input type="number" id="calc-t-dias" value="22" min="1" max="31"></div>
+          <div class="field"><label>Ingreso neto mensual objetivo (Gs)</label><input type="number" id="calc-t-objetivo" value="0" min="0"></div>
+          <div class="field">
+            <label>Costo por hora calculado</label>
+            <input type="number" id="calc-t-costo-hora" value="0" readonly
+              style="background:var(--surface2);cursor:not-allowed;font-weight:800;color:var(--green);">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-green" onclick="calcGuardarTaller()">💾 Guardar configuración del taller</button>
+    </div>
+  </div>
+
+  <!-- ── PANEL: HISTORIAL ── -->
+  <!-- MODIFICADO: sin editar, con selección múltiple y exportar PDF -->
+  <div class="calc-panel" id="cpanel-historial">
+    <div class="content" style="max-width:900px;">
+
+      <!-- Barra superior -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:.85rem;font-weight:700;color:var(--ink3);">PRESUPUESTOS GUARDADOS</div>
+          <div style="font-size:.75rem;color:var(--ink3);margin-top:2px;">Solo los presupuestos guardados con ☁️ aparecen acá.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="calcCargarHistorialSupabase()">🔄 Actualizar</button>
+          <button class="btn btn-ghost btn-sm" id="hist-btn-seleccionar" onclick="calcToggleModoSeleccion()">☑️ Seleccionar</button>
+          <button class="btn btn-primary btn-sm" id="hist-btn-exportar" style="display:none;" onclick="calcExportarPDF()">📄 Exportar PDF</button>
+        </div>
+      </div>
+
+      <!-- Barra de selección (aparece al activar modo selección) -->
+      <div id="hist-barra-seleccion" style="display:none;background:var(--blue-l);border:1.5px solid var(--blue);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="font-size:.82rem;color:var(--blue);font-weight:700;" id="hist-seleccion-count">0 seleccionados</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="calcSeleccionarTodos()">Seleccionar todos</button>
+          <button class="btn btn-ghost btn-sm" onclick="calcDeseleccionarTodos()">Limpiar</button>
+        </div>
+      </div>
+
+      <div id="calc-historial-lista"></div>
+    </div>
+  </div>
+
 </div>
+<!-- ══ FIN PRESUPUESTADOR v2 ══ -->
 
 <!-- ══════════════════════════════════════════════════════ -->
 <!-- PANTALLA CONFIGURACIÓN — ACORDEONES + WHATSAPP + PWA  -->
@@ -3361,6 +3677,10 @@ html.dark button[onclick="exportReportePDF()"] {
         <!-- ── LÍNEAS AGREGADAS: botones editar y cerrar en el header ── -->
         <button class="btn btn-ghost btn-sm" id="ficha-btn-editar"
           style="padding:6px 14px;font-size:.8rem;">✏️ Editar</button>
+        <!-- ── AGREGADO: botón eliminar faltante — evita error JS en openFichaCliente ── -->
+        <button class="btn btn-ghost btn-sm" id="ficha-btn-eliminar"
+          style="padding:6px 10px;font-size:.8rem;color:var(--red);">🗑</button>
+        <!-- ── FIN AGREGADO ── -->
         <button class="modal-close" onclick="closeModal('ficha-cliente-overlay')" style="position:static;">✕</button>
         <!-- ── FIN LÍNEAS AGREGADAS ── -->
       </div>

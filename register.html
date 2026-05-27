@@ -616,16 +616,25 @@ async function doRegister() {
 
     if (unErr) throw unErr;
 
-    // ── PASO 4: Crear suscripción con plan gratis ──
+    // ── PASO 4: Crear suscripción con trial de 7 días ──
+    // ── MODIFICADO SEGURIDAD: agregar es_trial y trial_expira ──
+    const trialExpira = new Date();
+    trialExpira.setDate(trialExpira.getDate() + 7);
+    const trialExpiraStr = trialExpira.toISOString().split('T')[0]; // formato YYYY-MM-DD
+
     const { error: susErr } = await sb
       .from('suscripciones')
       .insert({
-        negocio_id: negocioId,
-        plan_id:    'gratis',
-        estado:     'activa',
+        negocio_id:   negocioId,
+        plan_id:      'gratis',
+        estado:       'activa',
+        es_trial:     true,
+        trial_expira: trialExpiraStr,
+        fecha_inicio: new Date().toISOString().split('T')[0],
       });
 
     if (susErr) throw susErr;
+    // ── FIN MODIFICADO SEGURIDAD ──
 
     // ── ÉXITO: mostrar pantalla de confirmación ──
     document.getElementById('form-screen').style.display  = 'none';
