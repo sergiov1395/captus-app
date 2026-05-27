@@ -5797,16 +5797,14 @@ function calcUpdateCFTotal() {
 }
 
 function calcRecalcCostoHora() {
-  const d = +document.getElementById('calc-cf-deudas')?.value || 0;
-  const l = +document.getElementById('calc-cf-luz')?.value    || 0;
-  const i = +document.getElementById('calc-cf-insumos')?.value|| 0;
-  const o = +document.getElementById('calc-cf-otros')?.value  || 0;
-  const obj= +document.getElementById('calc-t-objetivo')?.value|| 0;
-  const h = +document.getElementById('calc-t-horas')?.value   || 6;
-  const dias= +document.getElementById('calc-t-dias')?.value  || 22;
-  const totalMes = d + l + i + o + obj;
+  // CORREGIDO: el costo por hora representa solo el ingreso objetivo del operario.
+  // Los costos fijos del taller se recuperan distribuyéndolos en el precio de cada trabajo,
+  // no inflando la mano de obra por hora.
+  const obj  = +document.getElementById('calc-t-objetivo')?.value || 0;
+  const h    = +document.getElementById('calc-t-horas')?.value    || 6;
+  const dias = +document.getElementById('calc-t-dias')?.value     || 22;
   const horasMes = h * dias;
-  const ch = horasMes > 0 ? Math.round(totalMes / horasMes) : 0;
+  const ch = horasMes > 0 ? Math.round(obj / horasMes) : 0;
   const elH = document.getElementById('calc-t-costo-hora');
   if (elH) elH.value = ch;
   calcState.taller._costoHora = ch;

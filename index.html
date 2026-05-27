@@ -242,6 +242,19 @@ hr.divider{border:none;border-top:1px dashed var(--border);margin:14px 0;}
 .calc-breakdown-row.total-row{color:var(--ink);font-weight:800;border-bottom:2px solid var(--ink);padding:7px 0;font-size:.9rem;}
 .calc-hist-item{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
 .calc-hist-name{font-weight:700;font-size:.9rem;}
+
+/* ══ AGREGADO: estilos Xerox C8045 panel ══ */
+.xr-info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--border);font-size:.83rem;}
+.xr-info-row:last-child{border-bottom:none;}
+.xr-info-key{color:var(--ink3);font-weight:600;}
+.xr-info-val{font-weight:700;color:var(--ink);}
+.xr-ch-row{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.xr-ch-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.xr-ch-name{font-size:.78rem;font-weight:700;color:var(--ink);width:16px;text-align:center;}
+.xr-bar-track{flex:1;height:8px;background:var(--surface2);border-radius:100px;overflow:hidden;border:1px solid var(--border);}
+.xr-bar-fill{height:100%;border-radius:100px;transition:width .4s ease;}
+.xr-ch-pct{font-size:.8rem;font-weight:700;color:var(--ink2);width:42px;text-align:right;}
+/* ══ FIN AGREGADO ══ */
 .calc-hist-detail{font-size:.75rem;color:var(--ink3);margin-top:2px;}
 .calc-hist-price{font-weight:800;font-size:1rem;color:var(--green);white-space:nowrap;}
 .calc-mat-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px;}
@@ -2646,12 +2659,17 @@ html.dark button[onclick="exportReportePDF()"] {
   </div>
 
   <!-- Tabs de navegación del presupuestador -->
-  <div style="display:flex;gap:0;border-bottom:1.5px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto;" id="calc-nav-tabs">
+  <!-- ══ MODIFICADO: se agrega pestaña Xerox C8045 alineada a la derecha ══ -->
+  <div style="display:flex;gap:0;border-bottom:1.5px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto;align-items:stretch;" id="calc-nav-tabs">
     <button class="calc-nav-btn active" onclick="switchCalcPanel('calcular',this)">📐 Calcular</button>
     <button class="calc-nav-btn" onclick="switchCalcPanel('materiales',this)">📦 Materiales</button>
     <button class="calc-nav-btn" onclick="switchCalcPanel('taller',this)">⚙️ Mi Taller</button>
     <button class="calc-nav-btn" onclick="switchCalcPanel('historial',this)">🗂 Historial</button>
+    <!-- Separador + pestaña especial alineada a la derecha -->
+    <div style="flex:1;min-width:32px;"></div>
+    <button class="calc-nav-btn" onclick="switchCalcPanel('xerox',this)" style="border-left:1.5px solid var(--border);color:var(--blue);font-size:.8rem;">🖨️ Xerox C8045</button>
   </div>
+  <!-- ══ FIN MODIFICADO ══ -->
 
   <!-- ── PANEL: CALCULAR ── -->
   <div class="calc-panel active" id="cpanel-calcular">
@@ -2897,7 +2915,7 @@ html.dark button[onclick="exportReportePDF()"] {
           <div class="field"><label>Días laborables por mes</label><input type="number" id="calc-t-dias" value="22" min="1" max="31"></div>
           <div class="field"><label>Ingreso neto mensual objetivo (Gs)</label><input type="number" id="calc-t-objetivo" value="0" min="0"></div>
           <div class="field">
-            <label>Costo por hora calculado</label>
+            <label>Valor de tu hora de trabajo (Gs/hr)</label>
             <input type="number" id="calc-t-costo-hora" value="0" readonly
               style="background:var(--surface2);cursor:not-allowed;font-weight:800;color:var(--green);">
           </div>
@@ -2938,6 +2956,255 @@ html.dark button[onclick="exportReportePDF()"] {
       <div id="calc-historial-lista"></div>
     </div>
   </div>
+
+<!-- ══ AGREGADO: PANEL XEROX C8045 — Calculadora de tiempo y cobertura ══ -->
+  <div class="calc-panel" id="cpanel-xerox">
+    <div class="content" style="max-width:960px;">
+
+      <!-- Nota contextual -->
+      <div style="background:var(--blue-l);border-left:3px solid var(--blue);border-radius:var(--r-sm);padding:10px 14px;font-size:.82rem;color:var(--blue);margin-bottom:18px;line-height:1.6;">
+        🖨️ Herramienta de estimación para la <strong>Xerox Altalink C8045</strong>. Los datos no se guardan — es solo para cálculo temporal.
+      </div>
+
+      <!-- Sub-tabs internos -->
+      <div style="display:flex;gap:4px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:4px;margin-bottom:20px;width:fit-content;">
+        <button id="xerox-tab-time" onclick="xeroxSwitchTab('time')"
+          style="padding:8px 16px;border-radius:6px;border:none;font-family:var(--font);font-size:.8rem;font-weight:600;cursor:pointer;background:var(--ink);color:white;transition:all .15s;">
+          ⏱ Tiempo de impresión
+        </button>
+        <button id="xerox-tab-coverage" onclick="xeroxSwitchTab('coverage')"
+          style="padding:8px 16px;border-radius:6px;border:none;font-family:var(--font);font-size:.8rem;font-weight:600;cursor:pointer;background:transparent;color:var(--ink3);transition:all .15s;">
+          🎨 Cobertura de tóner
+        </button>
+      </div>
+
+      <!-- ════ PANEL: TIEMPO ════ -->
+      <div id="xerox-panel-time">
+        <div class="grid-2" style="gap:16px;align-items:start;">
+
+          <!-- Columna izq: parámetros -->
+          <div>
+            <div class="card" style="margin-bottom:14px;">
+              <div class="card-title">📄 Documento</div>
+              <div class="field-row" style="margin-bottom:12px;">
+                <div class="field">
+                  <label>Cantidad de copias</label>
+                  <input type="number" id="xr-copies" value="1" min="1" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;" oninput="xeroxCalcTime()">
+                </div>
+                <div class="field">
+                  <label>Páginas por documento</label>
+                  <input type="number" id="xr-pages-doc" value="1" min="1" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;" oninput="xeroxCalcTime()">
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Modo de color</label>
+                  <select id="xr-color-mode" onchange="xeroxCalcTime()" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;">
+                    <option value="color">🎨 Color</option>
+                    <option value="bw">⬛ Blanco y negro</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Tamaño de papel</label>
+                  <select id="xr-paper-size" onchange="xeroxCalcTime()" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;">
+                    <option value="A4">A4</option>
+                    <option value="A3">A3</option>
+                    <option value="Letter">Letter</option>
+                    <option value="Legal">Legal</option>
+                    <option value="A5">A5</option>
+                    <option value="Tabloid">Tabloid</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:14px;">
+              <div class="card-title">⚙️ Configuración de impresión</div>
+              <div class="field-row" style="margin-bottom:12px;">
+                <div class="field">
+                  <label>Tipo de papel</label>
+                  <select id="xr-paper-type" onchange="xeroxCalcTime()" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;">
+                    <option value="plain">Estándar</option>
+                    <option value="coated">Couché / Satinado</option>
+                    <option value="heavy">Pesado (120–163g)</option>
+                    <option value="cardstock">Cartulina (164–220g)</option>
+                    <option value="recycled">Reciclado</option>
+                    <option value="labels">Etiquetas</option>
+                    <option value="transparency">Transparencias</option>
+                    <option value="envelope">Sobres</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Resolución</label>
+                  <select id="xr-resolution" onchange="xeroxCalcTime()" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;">
+                    <option value="standard">Estándar (600 dpi)</option>
+                    <option value="enhanced">Mejorada (1200×1200)</option>
+                    <option value="photo">Foto (2400 dpi)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label>Acabado / Finisher</label>
+                <select id="xr-finisher" onchange="xeroxCalcTime()" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;">
+                  <option value="none">Sin acabado</option>
+                  <option value="staple">Grapado simple (1 grapa)</option>
+                  <option value="staple2">Grapado doble (2 grapas)</option>
+                  <option value="punch">Perforado 2 huecos</option>
+                  <option value="punch4">Perforado 4 huecos</option>
+                  <option value="booklet">Folleto / Booklet</option>
+                  <option value="fold">Plegado Z</option>
+                </select>
+              </div>
+              <div style="display:flex;gap:20px;margin-top:14px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ink2);">
+                  <input type="checkbox" id="xr-duplex" onchange="xeroxCalcTime()" style="width:16px;height:16px;accent-color:var(--ink);cursor:pointer;">
+                  Doble faz (Dúplex)
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ink2);">
+                  <input type="checkbox" id="xr-high-coverage" onchange="xeroxCalcTime()" style="width:16px;height:16px;accent-color:var(--ink);cursor:pointer;">
+                  Cobertura alta (>60%)
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ink2);">
+                  <input type="checkbox" id="xr-secure-print" onchange="xeroxCalcTime()" style="width:16px;height:16px;accent-color:var(--ink);cursor:pointer;">
+                  Impresión segura (PIN)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna der: resultado -->
+          <div>
+            <div class="card" style="background:var(--ink);color:white;border-color:var(--ink);">
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);margin-bottom:16px;">Tiempo estimado</div>
+              <div style="text-align:center;padding:20px 0 16px;">
+                <div id="xr-r-time" style="font-size:3.5rem;font-weight:800;letter-spacing:-.05em;color:#4ade80;line-height:1;">—</div>
+                <div id="xr-r-time-unit" style="font-size:.85rem;color:rgba(255,255,255,.45);margin-top:4px;font-weight:600;">ingresá los datos</div>
+              </div>
+              <div id="xr-r-time-detail" style="text-align:center;font-size:.78rem;color:rgba(255,255,255,.35);margin-bottom:16px;">—</div>
+              <div id="xr-time-rows" style="display:flex;flex-direction:column;gap:0;"></div>
+            </div>
+            <div id="xr-time-note" style="font-size:.75rem;color:var(--ink3);line-height:1.6;margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--r-sm);border:1.5px solid var(--border);"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ════ PANEL: COBERTURA ════ -->
+      <div id="xerox-panel-coverage" style="display:none;">
+        <div class="grid-2" style="gap:16px;align-items:start;">
+
+          <!-- Columna izq: carga de imagen + opciones -->
+          <div>
+            <div class="card" style="margin-bottom:14px;">
+              <div class="card-title">🖼 Imagen a analizar</div>
+
+              <!-- Zona de upload -->
+              <div id="xr-upload-zone" onclick="document.getElementById('xr-file-input').click()"
+                style="border:2px dashed var(--border);border-radius:var(--r-sm);padding:32px 20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface2);margin-bottom:14px;"
+                ondragover="event.preventDefault();this.style.borderColor='var(--ink)'"
+                ondragleave="this.style.borderColor='var(--border)'"
+                ondrop="event.preventDefault();this.style.borderColor='var(--border)';xeroxHandleFile(event.dataTransfer.files[0])">
+                <input type="file" id="xr-file-input" accept="image/*" style="display:none;" onchange="xeroxHandleFile(this.files[0])">
+                <div id="xr-upload-placeholder">
+                  <div style="font-size:2rem;margin-bottom:8px;">📂</div>
+                  <div style="font-size:.88rem;font-weight:700;color:var(--ink2);margin-bottom:4px;">Arrastrá o hacé clic para subir</div>
+                  <div style="font-size:.78rem;color:var(--ink3);">PNG, JPG, GIF — cualquier tamaño</div>
+                </div>
+                <div id="xr-preview-container" style="display:none;">
+                  <img id="xr-preview-img" style="width:100%;max-height:220px;object-fit:contain;border-radius:var(--r-sm);display:block;">
+                  <canvas id="xr-analysis-canvas" style="display:none;"></canvas>
+                </div>
+              </div>
+
+              <!-- Modo B/N o Color -->
+              <div class="field-row" style="margin-bottom:12px;">
+                <div onclick="xeroxSetMode('color')" id="xr-mode-color"
+                  style="padding:12px;border-radius:var(--r-sm);border:1.5px solid var(--ink);background:var(--surface2);cursor:pointer;text-align:center;transition:all .15s;">
+                  <div style="font-size:1.2rem;margin-bottom:4px;">🎨</div>
+                  <div style="font-size:.8rem;font-weight:700;color:var(--ink);">Color CMYK</div>
+                </div>
+                <div onclick="xeroxSetMode('bw')" id="xr-mode-bw"
+                  style="padding:12px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;transition:all .15s;color:var(--ink3);">
+                  <div style="font-size:1.2rem;margin-bottom:4px;">⬛</div>
+                  <div style="font-size:.8rem;font-weight:700;">Solo negro</div>
+                </div>
+              </div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label>Tamaño de página</label>
+                  <select id="xr-page-size" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;">
+                    <option value="A4">A4</option>
+                    <option value="A3">A3</option>
+                    <option value="Letter">Letter</option>
+                    <option value="Legal">Legal</option>
+                    <option value="A5">A5</option>
+                    <option value="Tabloid">Tabloid</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Área ocupada en página</label>
+                  <select id="xr-coverage-area" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--font);font-size:.9rem;background:var(--bg);color:var(--ink);outline:none;">
+                    <option value="1">100% — página completa</option>
+                    <option value="0.75">75% — casi toda</option>
+                    <option value="0.5">50% — media página</option>
+                    <option value="0.25">25% — cuarto de página</option>
+                  </select>
+                </div>
+              </div>
+
+              <button id="xr-analyze-btn" onclick="xeroxAnalyze()" disabled
+                style="width:100%;margin-top:12px;padding:11px;border-radius:100px;border:none;background:var(--ink);color:white;font-family:var(--font);font-weight:700;font-size:.88rem;cursor:pointer;opacity:.5;transition:all .15s;">
+                🔬 Analizar cobertura
+              </button>
+            </div>
+          </div>
+
+          <!-- Columna der: resultados cobertura -->
+          <div>
+            <div id="xr-no-coverage-results" class="card" style="text-align:center;padding:40px 20px;">
+              <div style="font-size:2.5rem;margin-bottom:12px;">🎨</div>
+              <div style="font-size:.9rem;font-weight:700;color:var(--ink2);margin-bottom:6px;">Subí una imagen para analizar</div>
+              <div style="font-size:.8rem;color:var(--ink3);">La herramienta calcula el porcentaje de cobertura de tóner de cada canal CMYK.</div>
+            </div>
+
+            <div id="xr-coverage-results" style="display:none;">
+              <!-- Tarjeta principal de resultado -->
+              <div style="background:var(--ink);color:white;border-radius:var(--r);padding:20px;margin-bottom:12px;">
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);margin-bottom:12px;">Cobertura total de tóner</div>
+                <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:8px;">
+                  <div id="xr-r-total" style="font-size:3rem;font-weight:800;letter-spacing:-.05em;color:#4ade80;line-height:1;">—</div>
+                  <div style="padding-bottom:6px;">
+                    <div style="font-size:.72rem;color:rgba(255,255,255,.35);">Píxeles con tóner</div>
+                    <div id="xr-r-ink" style="font-weight:700;font-size:.95rem;">—</div>
+                  </div>
+                  <div style="padding-bottom:6px;">
+                    <div style="font-size:.72rem;color:rgba(255,255,255,.35);">Área en blanco</div>
+                    <div id="xr-r-white" style="font-weight:700;font-size:.95rem;">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Barras CMYK -->
+              <div class="card" style="margin-bottom:12px;">
+                <div class="card-title">Canales de color</div>
+                <div id="xr-cmyk-section"></div>
+              </div>
+
+              <!-- Detalles -->
+              <div class="card">
+                <div class="card-title">Detalle del análisis</div>
+                <div id="xr-detail-rows"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- ══ FIN AGREGADO: PANEL XEROX C8045 ══ -->
 
 </div>
 <!-- ══ FIN PRESUPUESTADOR v2 ══ -->
@@ -3985,6 +4252,242 @@ function togglePass(inputId, btnId) {
   }
 }
 // ══ FIN AGREGADO ══
+
+// ══════════════════════════════════════════════════════════
+// ▼▼▼ XEROX C8045 — CALCULADORA DE TIEMPO Y COBERTURA ▼▼▼
+// AGREGADO: sin persistencia, cálculo temporal
+// ══════════════════════════════════════════════════════════
+let xeroxMode = 'color';
+let xeroxImageLoaded = false;
+let xeroxCoverageData = null;
+
+function xeroxSwitchTab(tab) {
+  document.getElementById('xerox-panel-time').style.display     = tab === 'time'     ? 'block' : 'none';
+  document.getElementById('xerox-panel-coverage').style.display = tab === 'coverage' ? 'block' : 'none';
+  const btnTime = document.getElementById('xerox-tab-time');
+  const btnCov  = document.getElementById('xerox-tab-coverage');
+  if (tab === 'time') {
+    btnTime.style.background = 'var(--ink)'; btnTime.style.color = 'white';
+    btnCov.style.background  = 'transparent'; btnCov.style.color = 'var(--ink3)';
+  } else {
+    btnCov.style.background  = 'var(--ink)'; btnCov.style.color = 'white';
+    btnTime.style.background = 'transparent'; btnTime.style.color = 'var(--ink3)';
+  }
+}
+
+function xeroxSetMode(m) {
+  xeroxMode = m;
+  const elColor = document.getElementById('xr-mode-color');
+  const elBw    = document.getElementById('xr-mode-bw');
+  if (m === 'color') {
+    elColor.style.borderColor = 'var(--ink)'; elColor.style.color = 'var(--ink)';
+    elBw.style.borderColor    = 'var(--border)'; elBw.style.color = 'var(--ink3)';
+  } else {
+    elBw.style.borderColor    = 'var(--ink)'; elBw.style.color = 'var(--ink)';
+    elColor.style.borderColor = 'var(--border)'; elColor.style.color = 'var(--ink3)';
+  }
+}
+
+function xeroxHandleFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('xr-preview-img');
+    img.src = e.target.result;
+    img.onload = () => {
+      document.getElementById('xr-upload-placeholder').style.display = 'none';
+      document.getElementById('xr-preview-container').style.display  = 'block';
+      xeroxImageLoaded = true;
+      const btn = document.getElementById('xr-analyze-btn');
+      btn.disabled = false; btn.style.opacity = '1';
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
+function xeroxGetPixelData() {
+  const img    = document.getElementById('xr-preview-img');
+  const canvas = document.getElementById('xr-analysis-canvas');
+  const MAX = 300;
+  let w = img.naturalWidth, h = img.naturalHeight;
+  const scale = Math.min(MAX / w, MAX / h, 1);
+  canvas.width  = Math.round(w * scale);
+  canvas.height = Math.round(h * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function xeroxAnalyze() {
+  if (!xeroxImageLoaded) return;
+  const btn = document.getElementById('xr-analyze-btn');
+  btn.textContent = '⏳ Analizando…'; btn.disabled = true;
+  setTimeout(() => {
+    try { xeroxRunAnalysis(); } catch (e) { console.error(e); }
+    btn.textContent = '🔬 Analizar cobertura'; btn.disabled = false;
+  }, 80);
+}
+
+function xeroxRunAnalysis() {
+  const data  = xeroxGetPixelData();
+  const px    = data.data;
+  const total = px.length / 4;
+  let inkPx = 0, cSum = 0, mSum = 0, ySum = 0, kSum = 0;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i]/255, g = px[i+1]/255, b = px[i+2]/255;
+    if (xeroxMode === 'bw') {
+      const lum = 0.299*r + 0.587*g + 0.114*b;
+      kSum += 1 - lum;
+      if (lum < 0.9) inkPx++;
+    } else {
+      const kv   = 1 - Math.max(r, g, b);
+      const denom = 1 - kv;
+      const cv = denom < 0.001 ? 0 : (1 - r - kv) / denom;
+      const mv = denom < 0.001 ? 0 : (1 - g - kv) / denom;
+      const yv = denom < 0.001 ? 0 : (1 - b - kv) / denom;
+      cSum += Math.max(0, Math.min(1, cv));
+      mSum += Math.max(0, Math.min(1, mv));
+      ySum += Math.max(0, Math.min(1, yv));
+      kSum += Math.max(0, Math.min(1, kv));
+      const inkAmt = (cv + mv + yv + kv) / 4;
+      if (inkAmt > 0.04) inkPx++;
+    }
+  }
+  const coveragePct = (inkPx / total) * 100;
+  const sizes = { A4:62370, Letter:60323, Legal:76936, A3:124740, Tabloid:120645, A5:31185 };
+  const pageArea   = sizes[document.getElementById('xr-page-size').value] || 62370;
+  const areaFactor = parseFloat(document.getElementById('xr-coverage-area').value) || 1;
+  xeroxCoverageData = {
+    coveragePct, inkPx, total,
+    c: (cSum/total)*100, m: (mSum/total)*100,
+    y: (ySum/total)*100, k: (kSum/total)*100,
+    pageArea, areaFactor
+  };
+  xeroxShowCoverageResults();
+}
+
+function xeroxGetCovBadge(pct) {
+  if (pct < 5)  return ['background:var(--green-l);color:var(--green);',   'Muy baja'];
+  if (pct < 15) return ['background:var(--blue-l);color:var(--blue);',     'Normal'];
+  if (pct < 30) return ['background:var(--amber-l);color:var(--amber);',   'Alta'];
+  if (pct < 60) return ['background:var(--red-l);color:var(--red);',       'Muy alta'];
+  return             ['background:var(--red-l);color:var(--red);font-weight:800;', 'Crítica'];
+}
+
+function xeroxShowCoverageResults() {
+  const d = xeroxCoverageData; if (!d) return;
+  document.getElementById('xr-no-coverage-results').style.display = 'none';
+  document.getElementById('xr-coverage-results').style.display    = 'block';
+  document.getElementById('xr-r-total').textContent = d.coveragePct.toFixed(1) + '%';
+  document.getElementById('xr-r-ink').textContent   = (d.inkPx / d.total * 100).toFixed(1) + '%';
+  document.getElementById('xr-r-white').textContent = (100 - d.inkPx / d.total * 100).toFixed(1) + '%';
+
+  const cmykSec = document.getElementById('xr-cmyk-section');
+  if (xeroxMode === 'color') {
+    const channels = [
+      ['C', '#0891b2', d.c, 'Cyan'],
+      ['M', '#db2777', d.m, 'Magenta'],
+      ['Y', '#ca8a04', d.y, 'Amarillo'],
+      ['K', '#71717a', d.k, 'Negro'],
+    ];
+    cmykSec.innerHTML = channels.map(([n, col, v]) => `
+      <div class="xr-ch-row">
+        <div class="xr-ch-dot" style="background:${col}"></div>
+        <div class="xr-ch-name">${n}</div>
+        <div class="xr-bar-track"><div class="xr-bar-fill" style="width:${Math.min(v,100).toFixed(1)}%;background:${col}"></div></div>
+        <div class="xr-ch-pct">${Math.min(v,100).toFixed(1)}%</div>
+      </div>`).join('');
+  } else {
+    const kp = Math.min(d.k, 100).toFixed(1);
+    cmykSec.innerHTML = `<div class="xr-ch-row">
+      <div class="xr-ch-dot" style="background:#71717a"></div>
+      <div class="xr-ch-name">K</div>
+      <div class="xr-bar-track"><div class="xr-bar-fill" style="width:${kp}%;background:#71717a"></div></div>
+      <div class="xr-ch-pct">${kp}%</div>
+    </div>`;
+  }
+  const [badgeStyle, badgeLabel] = xeroxGetCovBadge(d.coveragePct);
+  const inkArea  = (d.inkPx / d.total * d.pageArea * d.areaFactor / 100).toFixed(1);
+  const totalCov = (d.coveragePct * d.areaFactor).toFixed(1);
+  document.getElementById('xr-detail-rows').innerHTML = [
+    ['Modo analizado',        xeroxMode === 'color' ? 'Color (CMYK)' : 'Blanco y negro'],
+    ['Tamaño de página',      document.getElementById('xr-page-size').value],
+    ['Área de imagen',        `${(d.areaFactor * 100).toFixed(0)}% de la página`],
+    ['Cobertura efectiva',    totalCov + '%'],
+    ['Píxeles analizados',    d.total.toLocaleString('es-PY')],
+    ['Nivel de cobertura',    `<span style="padding:2px 10px;border-radius:100px;font-size:.75rem;font-weight:700;${badgeStyle}">${badgeLabel}</span>`],
+    ['Área con tóner aprox.', inkArea + ' cm²'],
+  ].map(([k, v]) => `<div class="xr-info-row"><span class="xr-info-key">${k}</span><span class="xr-info-val">${v}</span></div>`).join('');
+}
+
+function xeroxCalcTime() {
+  const copies    = Math.max(1, parseInt(document.getElementById('xr-copies').value)    || 1);
+  const pagesDoc  = Math.max(1, parseInt(document.getElementById('xr-pages-doc').value) || 1);
+  const colorMode = document.getElementById('xr-color-mode').value;
+  const paperType = document.getElementById('xr-paper-type').value;
+  const resolution= document.getElementById('xr-resolution').value;
+  const paperSize = document.getElementById('xr-paper-size').value;
+  const duplex    = document.getElementById('xr-duplex').checked;
+  const highCov   = document.getElementById('xr-high-coverage').checked;
+  const securePrint=document.getElementById('xr-secure-print').checked;
+  const finisher  = document.getElementById('xr-finisher').value;
+  const totalPages = copies * pagesDoc;
+  const printSides = duplex ? Math.ceil(pagesDoc / 2) * copies : totalPages;
+
+  let ppm = 45;
+  if (paperSize === 'A3' || paperSize === 'Tabloid') ppm = Math.round(ppm * 0.55);
+  if (paperSize === 'A5')          ppm = Math.round(ppm * 0.9);
+  if (paperType === 'heavy')       ppm = Math.round(ppm * 0.6);
+  if (paperType === 'cardstock')   ppm = Math.round(ppm * 0.45);
+  if (paperType === 'transparency')ppm = Math.round(ppm * 0.35);
+  if (paperType === 'labels')      ppm = Math.round(ppm * 0.4);
+  if (paperType === 'envelope')    ppm = Math.round(ppm * 0.3);
+  if (paperType === 'coated')      ppm = Math.round(ppm * 0.82);
+  if (paperType === 'recycled')    ppm = Math.round(ppm * 0.95);
+  if (resolution === 'enhanced')   ppm = Math.round(ppm * 0.75);
+  if (resolution === 'photo')      ppm = Math.round(ppm * 0.45);
+  if (highCov)   ppm = Math.round(ppm * 0.55);
+  if (duplex)    ppm = Math.round(ppm * 0.9);
+  ppm = Math.max(1, ppm);
+
+  const warmupSec  = 35;
+  const secureSec  = securePrint ? copies * 4 : 0;
+  const printSec   = Math.ceil((printSides / ppm) * 60);
+  const fs = { none:0, staple:copies*2, staple2:copies*3, punch:copies*1.5, punch4:copies*2.5, booklet:copies*5, fold:copies*4 };
+  const finisherSec= Math.ceil(fs[finisher] || 0);
+  const totalSec   = warmupSec + secureSec + printSec + finisherSec;
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+
+  let timeDisplay, unitLabel;
+  if (totalSec < 60)      { timeDisplay = totalSec; unitLabel = 'segundos'; }
+  else if (min < 60)      { timeDisplay = min + (sec >= 30 ? '+' : ''); unitLabel = 'minutos'; }
+  else { const h = Math.floor(min/60); const m = min%60; timeDisplay = h+'h '+(m>0?m+'m':''); unitLabel = ''; }
+
+  document.getElementById('xr-r-time').textContent       = timeDisplay;
+  document.getElementById('xr-r-time-unit').textContent  = unitLabel;
+  document.getElementById('xr-r-time-detail').textContent= `${totalPages.toLocaleString('es-PY')} págs · ${printSides.toLocaleString('es-PY')} caras · ${ppm} ppm efectivas`;
+
+  const finisherLabels = { none:'Sin acabado', staple:'Grapado 1', staple2:'Grapado 2', punch:'Perforado 2', punch4:'Perforado 4', booklet:'Folleto', fold:'Plegado Z' };
+  document.getElementById('xr-time-rows').innerHTML = [
+    ['Velocidad nominal C8045', colorMode === 'bw' ? '45 ppm (B/N)' : '45 ppm (Color)'],
+    ['Velocidad efectiva calculada', ppm + ' ppm'],
+    ['Total páginas a imprimir', totalPages.toLocaleString('es-PY')],
+    ['Caras físicas a procesar', printSides.toLocaleString('es-PY')],
+    ['Tiempo de calentamiento', '~' + warmupSec + ' seg'],
+    securePrint ? ['Impresión segura (demora)', '~' + secureSec + ' seg'] : null,
+    ['Tiempo de impresión neto', '~' + Math.ceil(printSec/60) + ' min'],
+    finisher !== 'none' ? ['Acabado: ' + finisherLabels[finisher], '~' + finisherSec + ' seg'] : null,
+    ['Tiempo total estimado', min > 0 ? (min + 'm ' + sec + 's') : (totalSec + 's')],
+  ].filter(Boolean).map(([k, v]) => `
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:.8rem;">
+      <span style="color:rgba(255,255,255,.45);font-weight:600;">${k}</span>
+      <span style="color:white;font-weight:700;">${v}</span>
+    </div>`).join('');
+
+  document.getElementById('xr-time-note').innerHTML = '<strong style="color:var(--amber)">Nota:</strong> Estimación basada en velocidades nominales de la Xerox Altalink C8045. El tiempo real puede variar por temperatura del fusor, estado del tóner y carga del controlador EFI Fiery.';
+}
+// ══ FIN XEROX C8045 ══
 </script>
 <!-- ══ FIN AGREGADO 2A ══ -->
 
